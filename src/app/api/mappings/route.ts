@@ -7,8 +7,8 @@ let cached: Mappings | null = null;
 
 export async function GET() {
   if (cached) return NextResponse.json(cached);
-  const path = join(process.cwd(), "src", "mappings.json");
-  const raw = await readFile(path, "utf-8");
+  const filePath = join(process.cwd(), "src", "mappings.json");
+  const raw = await readFile(filePath, "utf-8");
   cached = JSON.parse(raw) as Mappings;
   return NextResponse.json(cached);
 }

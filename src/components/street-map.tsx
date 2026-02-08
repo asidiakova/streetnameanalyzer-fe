@@ -13,7 +13,7 @@ const STREETS_HIGHLIGHT_LAYER_ID = "streets-highlight";
 
 const TILES_URL = process.env.NEXT_PUBLIC_STREETS_TILES_URL;
 const SOURCE_LAYER =
-  process.env.NEXT_PUBLIC_STREETS_SOURCE_LAYER ?? "public.planet_osm_line";
+  process.env.NEXT_PUBLIC_STREETS_SOURCE_LAYER ?? "streets";
 
 const DEFAULT_MAP_STYLE =
   process.env.NEXT_PUBLIC_MAP_STYLE_URL ??
@@ -133,7 +133,7 @@ export function StreetMap({
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-full min-h-[400px] ${className}`}
+      className={`relative w-full h-full min-h-100 ${className}`}
     />
   );
 }

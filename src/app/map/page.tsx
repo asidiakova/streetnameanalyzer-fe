@@ -1,5 +1,5 @@
-import { StreetMapPageClient } from "./street-map-page-client";
+import { redirect } from "next/navigation";
 
 export default function MapPage() {
-  return <StreetMapPageClient />;
+  redirect("/");
 }
