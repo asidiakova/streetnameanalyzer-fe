@@ -125,6 +125,9 @@ export function StreetMapPageClient({
 }) {
   const [activeMethod, setActiveMethod] = useState<string>("");
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [focusClusterIndex, setFocusClusterIndex] = useState(0);
+  const [focusTrigger, setFocusTrigger] = useState(0);
+  const [clusterCount, setClusterCount] = useState(0);
   const [activeTab, setActiveTab] = useState<TabId>("streets");
   const [streetSearch, setStreetSearch] = useState("");
   const [problemSort, setProblemSort] = useState<"score" | "entity_label">(
@@ -163,12 +166,18 @@ export function StreetMapPageClient({
     [sortedGroupsAll, streetSearch]
   );
 
-  const selectedVariants =
-    selectedGroupId && method
-      ? method.groups[selectedGroupId]?.variants ?? null
-      : null;
+  const selectedGroup =
+    selectedGroupId && method ? method.groups[selectedGroupId] ?? null : null;
+  const selectedVariants = selectedGroup?.variants ?? null;
 
-  const clearHighlight = useCallback(() => setSelectedGroupId(null), []);
+  const clearHighlight = useCallback(() => {
+    setSelectedGroupId(null);
+    setFocusClusterIndex(0);
+  }, []);
+
+  const handleClusterCountChange = useCallback((count: number) => {
+    setClusterCount(count);
+  }, []);
 
   const handleExportVisible = useCallback(() => {
     if (!method) return;
@@ -223,8 +232,8 @@ export function StreetMapPageClient({
   ];
 
   return (
-    <div className="flex h-screen w-full">
-      <aside className="flex w-96 shrink-0 flex-col border-r border-zinc-200 bg-white">
+    <div className="flex h-full min-h-0 w-full overflow-hidden">
+      <aside className="flex w-96 shrink-0 flex-col min-h-0 border-r border-zinc-200 bg-white">
         <div className="shrink-0 border-b border-zinc-200 p-4">
           <label
             htmlFor="normalization-method"
@@ -355,17 +364,27 @@ export function StreetMapPageClient({
                       key={canonical}
                       role="button"
                       tabIndex={0}
-                      onClick={() =>
-                        setSelectedGroupId((prev) =>
-                          prev === canonical ? null : canonical
-                        )
-                      }
+                      onClick={() => {
+                        if (selectedGroupId === canonical) {
+                          setSelectedGroupId(null);
+                          setFocusClusterIndex(0);
+                        } else {
+                          setSelectedGroupId(canonical);
+                          setFocusClusterIndex(0);
+                          setFocusTrigger((t) => t + 1);
+                        }
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          setSelectedGroupId((prev) =>
-                            prev === canonical ? null : canonical
-                          );
+                          if (selectedGroupId === canonical) {
+                            setSelectedGroupId(null);
+                            setFocusClusterIndex(0);
+                          } else {
+                            setSelectedGroupId(canonical);
+                            setFocusClusterIndex(0);
+                            setFocusTrigger((t) => t + 1);
+                          }
                         }
                       }}
                       className={`cursor-pointer rounded border p-2 text-sm transition-colors hover:bg-zinc-100 ${
@@ -453,13 +472,16 @@ export function StreetMapPageClient({
                       </div>
                       <button
                         type="button"
-                        onClick={() =>
-                          setSelectedGroupId((prev) =>
-                            prev === collision.group_id
-                              ? null
-                              : collision.group_id
-                          )
-                        }
+                        onClick={() => {
+                          if (selectedGroupId === collision.group_id) {
+                            setSelectedGroupId(null);
+                            setFocusClusterIndex(0);
+                          } else {
+                            setSelectedGroupId(collision.group_id);
+                            setFocusClusterIndex(0);
+                            setFocusTrigger((t) => t + 1);
+                          }
+                        }}
                         className="mt-2 rounded bg-zinc-200 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-300"
                       >
                         {isSelected ? "Clear map" : "Show on map"}
@@ -572,11 +594,50 @@ export function StreetMapPageClient({
           )}
         </div>
       </aside>
-      <main className="min-w-0 flex-1">
+      <main className="relative min-h-0 min-w-0 flex-1">
         <StreetMap
           selectedVariants={selectedVariants}
+          focusClusterIndex={focusClusterIndex}
+          focusTrigger={focusTrigger}
+          onClusterCountChangeAction={handleClusterCountChange}
           className="h-full w-full"
         />
+        {selectedGroupId && clusterCount > 0 && (
+          <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-zinc-200 bg-white/95 px-4 py-2 shadow-lg backdrop-blur-sm">
+            <button
+              type="button"
+              onClick={() => {
+                setFocusClusterIndex((i) =>
+                    i-1 < 0 ? clusterCount - 1 : i - 1
+                );
+                setFocusTrigger((t) => t + 1);
+              }}
+              className="rounded border border-zinc-200 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:pointer-events-none disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <div className="flex flex-col items-center">
+              <span className="max-w-56 truncate text-sm font-medium text-zinc-900">
+                {selectedGroup?.representative}
+              </span>
+              <span className="text-xs text-zinc-500">
+                Location {focusClusterIndex + 1} / {clusterCount}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setFocusClusterIndex((i) =>
+                    i+1 >= clusterCount ? 0 : i + 1
+                );
+                setFocusTrigger((t) => t + 1);
+              }}
+              className="rounded border border-zinc-200 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:pointer-events-none disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </main>
     </div>
   );

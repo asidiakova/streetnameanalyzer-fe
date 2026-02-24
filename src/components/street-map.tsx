@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -25,19 +25,148 @@ const DEFAULT_STREET_COLOR = "rgba(100, 100, 100, 0.1)";
 const DEFAULT_STREET_WIDTH = 2;
 
 const EMPTY_NAME_FILTER: maplibregl.FilterSpecification = ["in", "name", ""];
+const FOCUS_PADDING = 80;
+const CLUSTER_MARGIN_DEG = 0.01; // ~1.1 km
+
+type ClustersIndex = Map<string, maplibregl.LngLatBounds[]>;
+
+function coordsFromGeometry(geom: GeoJSON.Geometry | null): number[][] {
+  if (!geom) return [];
+  if (geom.type === "Point") return [geom.coordinates];
+  if (geom.type === "LineString") return geom.coordinates;
+  if (geom.type === "MultiLineString") return geom.coordinates.flat();
+  if (geom.type === "Polygon") return geom.coordinates.flat();
+  if (geom.type === "MultiPolygon") return geom.coordinates.flat(2);
+  return [];
+}
+
+function boundsNear(
+  a: maplibregl.LngLatBounds,
+  b: maplibregl.LngLatBounds,
+  margin: number
+): boolean {
+  return !(
+    a.getEast() + margin < b.getWest() ||
+    b.getEast() + margin < a.getWest() ||
+    a.getNorth() + margin < b.getSouth() ||
+    b.getNorth() + margin < a.getSouth()
+  );
+}
+
+function mergeOverlappingBounds(
+  input: maplibregl.LngLatBounds[],
+  margin: number
+): maplibregl.LngLatBounds[] {
+  if (input.length <= 1) return [...input];
+
+  const parent = input.map((_, i) => i);
+  const find = (i: number): number => {
+    while (parent[i] !== i) {
+      parent[i] = parent[parent[i]];
+      i = parent[i];
+    }
+    return i;
+  };
+
+  for (let i = 0; i < input.length; i++) {
+    for (let j = i + 1; j < input.length; j++) {
+      if (boundsNear(input[i], input[j], margin)) {
+        parent[find(i)] = find(j);
+      }
+    }
+  }
+
+  const groups = new Map<number, maplibregl.LngLatBounds>();
+  for (let i = 0; i < input.length; i++) {
+    const root = find(i);
+    const existing = groups.get(root);
+    if (existing) {
+      existing.extend(input[i].getSouthWest());
+      existing.extend(input[i].getNorthEast());
+    } else {
+      groups.set(
+        root,
+        new maplibregl.LngLatBounds(
+          input[i].getSouthWest(),
+          input[i].getNorthEast()
+        )
+      );
+    }
+  }
+
+  return Array.from(groups.values());
+}
+
+function buildClustersIndex(
+  map: maplibregl.Map,
+  sourceId: string,
+  sourceLayer: string
+): ClustersIndex {
+  const features = map.querySourceFeatures(sourceId, {
+    sourceLayer,
+    filter: ["has", "name"],
+  });
+
+  const byName = new Map<string, maplibregl.LngLatBounds[]>();
+  for (const f of features) {
+    const name = f.properties?.name as string;
+    if (!name) continue;
+    const coords = coordsFromGeometry(f.geometry);
+    if (coords.length === 0) continue;
+
+    const fb = new maplibregl.LngLatBounds(
+      coords[0] as [number, number],
+      coords[0] as [number, number]
+    );
+    for (let i = 1; i < coords.length; i++) {
+      fb.extend(coords[i] as [number, number]);
+    }
+
+    const arr = byName.get(name);
+    if (arr) arr.push(fb);
+    else byName.set(name, [fb]);
+  }
+
+  const index: ClustersIndex = new Map();
+  for (const [name, bounds] of byName) {
+    index.set(name, mergeOverlappingBounds(bounds, CLUSTER_MARGIN_DEG));
+  }
+  return index;
+}
+
+function clustersForVariants(
+  index: ClustersIndex,
+  variants: string[]
+): maplibregl.LngLatBounds[] {
+  const all: maplibregl.LngLatBounds[] = [];
+  for (const v of variants) {
+    const perName = index.get(v);
+    if (perName) all.push(...perName);
+  }
+  return mergeOverlappingBounds(all, CLUSTER_MARGIN_DEG);
+}
 
 export type StreetMapProps = {
   selectedVariants?: string[] | null;
+  focusClusterIndex?: number;
+  focusTrigger?: number;
+  onClusterCountChangeAction?: (count: number) => void;
   className?: string;
 };
 
 export function StreetMap({
   selectedVariants = null,
+  focusClusterIndex,
+  focusTrigger,
+  onClusterCountChangeAction,
   className = "",
 }: StreetMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
+  const indexRef = useRef<ClustersIndex | null>(null);
+  const clustersRef = useRef<maplibregl.LngLatBounds[]>([]);
+  const [indexReady, setIndexReady] = useState(false);
 
   const handleFeatureClick = useCallback(
     (e: maplibregl.MapMouseEvent) => {
@@ -106,6 +235,15 @@ export function StreetMap({
             "line-width": HIGHLIGHT_WIDTH,
           },
         });
+
+        map.once("idle", () => {
+          indexRef.current = buildClustersIndex(
+            map,
+            STREETS_SOURCE_ID,
+            SOURCE_LAYER
+          );
+          setIndexReady(true);
+        });
       }
     });
 
@@ -115,6 +253,7 @@ export function StreetMap({
       map.remove();
       mapRef.current = null;
       popupRef.current?.remove();
+      indexRef.current = null;
     };
   }, [handleFeatureClick]);
 
@@ -129,6 +268,28 @@ export function StreetMap({
 
     map.setFilter(STREETS_HIGHLIGHT_LAYER_ID, filter);
   }, [selectedVariants]);
+
+  useEffect(() => {
+    if (!indexReady || !indexRef.current || !selectedVariants?.length) {
+      clustersRef.current = [];
+      onClusterCountChangeAction?.(0);
+      return;
+    }
+
+    clustersRef.current = clustersForVariants(
+      indexRef.current,
+      selectedVariants
+    );
+    onClusterCountChangeAction?.(clustersRef.current.length);
+  }, [selectedVariants, indexReady, onClusterCountChangeAction]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || focusClusterIndex == null || focusClusterIndex < 0) return;
+    const cluster = clustersRef.current[focusClusterIndex];
+    if (cluster)
+      map.fitBounds(cluster, { padding: FOCUS_PADDING, maxZoom: 16 });
+  }, [focusTrigger, focusClusterIndex]);
 
   return (
     <div
