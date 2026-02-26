@@ -49,6 +49,15 @@ export function StatisticsPageClient({
     Object.keys(mappings).length > 0 ? Object.keys(mappings)[0] : ""
   );
   const [chartTab, setChartTab] = useState<ChartTab>("length");
+  const [selectedLengthGroupId, setSelectedLengthGroupId] = useState<
+    string | null
+  >(null);
+  const [selectedVariantCount, setSelectedVariantCount] = useState<
+    number | null
+  >(null);
+  const [expandedVariantsGroupId, setExpandedVariantsGroupId] = useState<
+    string | null
+  >(null);
 
   const methodKeys = Object.keys(mappings);
   const method = mappings[activeMethod];
@@ -109,11 +118,24 @@ export function StatisticsPageClient({
     }));
   }, [variantDist]);
 
+  const groupsWithSelectedVariantCount = useMemo(() => {
+    if (selectedVariantCount == null || !method) return [];
+    return (
+      Object.entries(method.groups) as [string, (typeof method.groups)[string]][]
+    ).filter(([, g]) => g.variants.length === selectedVariantCount);
+  }, [method, selectedVariantCount]);
+
   const chartTabs: { id: ChartTab; label: string }[] = [
     { id: "length", label: "Top groups by length" },
     { id: "segments", label: "Segment count distribution" },
     { id: "variants", label: "Variants per group distribution" },
   ];
+
+  const variantPreview = (variants: string[], maxShow = 1) => {
+    if (variants.length <= maxShow)
+      return variants.join(", ");
+    return `${variants.slice(0, maxShow).join(", ")} +${variants.length - maxShow} more`;
+  };
 
   return (
     <div className="flex h-full flex-col overflow-auto bg-zinc-50 p-6">
@@ -218,7 +240,7 @@ export function StatisticsPageClient({
         </div>
       </section>
 
-      <section className="mb-8">
+      <section className="mb-8 pb-12">
         <h2 className="mb-4 text-lg font-semibold text-zinc-800">Charts</h2>
         <div className="mb-4 flex gap-2">
           {chartTabs.map(({ id, label }) => (
@@ -239,48 +261,89 @@ export function StatisticsPageClient({
 
         <div className="h-100 w-full overflow-visible rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
           {chartTab === "length" && (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={topByLength}
-                layout="vertical"
-                margin={{ left: 8, right: 24, top: 24, bottom: 12 }}
-              >
-                <XAxis type="number" unit=" km" tick={{ fontSize: 12 }} />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  width={220}
-                  interval={0}
-                  tick={{ fontSize: 11, fill: "#52525b" }}
-                  axisLine={false}
-                  tickLine={false}
-                  padding={{ top: 14, bottom: 14 }}
-                />
-                <Tooltip
-                  content={({ payload }: { payload: TooltipPayload }) => {
-                    const p = payload?.[0]?.payload as
-                      | { fullName: string; lengthKm: number }
-                      | undefined;
-                    if (!p) return null;
-                    return (
-                      <div className="rounded border border-zinc-200 bg-white px-3 py-2 text-sm shadow-lg">
-                        <div className="font-medium text-zinc-900">
-                          {p.fullName}
+            <>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={topByLength}
+                  layout="vertical"
+                  margin={{ left: 8, right: 24, top: 24, bottom: 12 }}
+                >
+                  <XAxis type="number" unit=" km" tick={{ fontSize: 12 }} />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={220}
+                    interval={0}
+                    tick={{ fontSize: 11, fill: "#52525b" }}
+                    axisLine={false}
+                    tickLine={false}
+                    padding={{ top: 14, bottom: 14 }}
+                  />
+                  <Tooltip
+                    content={({ payload }: { payload: TooltipPayload }) => {
+                      const p = payload?.[0]?.payload as
+                        | { fullName: string; lengthKm: number }
+                        | undefined;
+                      if (!p) return null;
+                      return (
+                        <div className="rounded border border-zinc-200 bg-white px-3 py-2 text-sm shadow-lg">
+                          <div className="font-medium text-zinc-900">
+                            {p.fullName}
+                          </div>
+                          <div className="text-zinc-600">
+                            {p.lengthKm.toFixed(2)} km
+                          </div>
                         </div>
-                        <div className="text-zinc-600">
-                          {p.lengthKm.toFixed(2)} km
-                        </div>
-                      </div>
-                    );
-                  }}
-                />
-                <Bar
-                  dataKey="lengthKm"
-                  fill={BAR_COLORS[0]}
-                  radius={[0, 4, 4, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+                      );
+                    }}
+                  />
+                  <Bar
+                    dataKey="lengthKm"
+                    fill={BAR_COLORS[0]}
+                    radius={[0, 4, 4, 0]}
+                    cursor="pointer"
+                    onClick={(data) =>
+                      setSelectedLengthGroupId(
+                        (data?.payload as { groupId?: string } | undefined)
+                          ?.groupId ?? null
+                      )
+                    }
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+              {selectedLengthGroupId && method?.groups[selectedLengthGroupId] && (
+                <div className="mt-4 border-t border-zinc-200 pt-4">
+                  <h3 className="mb-2 text-sm font-semibold text-zinc-800">
+                    Segments / variants in this group
+                  </h3>
+                  <div className="overflow-x-auto rounded border border-zinc-200">
+                    <table className="w-full min-w-md text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-zinc-200 bg-zinc-50">
+                          <th className="px-3 py-2 font-medium text-zinc-700">
+                            Name
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {method.groups[selectedLengthGroupId].variants.map(
+                          (variantName, i) => (
+                            <tr
+                              key={`${variantName}-${i}`}
+                              className="border-b border-zinc-100 last:border-0"
+                            >
+                              <td className="px-3 py-2 font-medium text-zinc-900">
+                                {variantName}
+                              </td>
+                            </tr>
+                          )
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           {chartTab === "segments" && (
@@ -344,66 +407,153 @@ export function StatisticsPageClient({
           )}
 
           {chartTab === "variants" && (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={variantDistWithFill}
-                margin={{ left: 24, right: 24, top: 24, bottom: 48 }}
-                barCategoryGap="20%"
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#e4e4e7"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="variantCount"
-                  type="number"
-                  tick={{ fontSize: 12, fill: "#52525b" }}
-                  allowDecimals={false}
-                  label={{
-                    value: "Variant count",
-                    position: "insideBottom",
-                    offset: -24,
-                    style: { fill: "#71717a", fontSize: 12 },
-                  }}
-                />
-                <YAxis
-                  scale="log"
-                  domain={[1, "auto"]}
-                  tick={{ fontSize: 12, fill: "#52525b" }}
-                  label={{
-                    value: "Number of groups",
-                    angle: -90,
-                    position: "insideLeft",
-                    style: { fill: "#71717a", fontSize: 12 },
-                  }}
-                />
-                <Tooltip
-                  content={({ payload }: { payload: TooltipPayload }) => {
-                    const p = payload?.[0]?.payload as
-                      | { variantCount: number; groupCount: number }
-                      | undefined;
-                    if (!p) return null;
-                    return (
-                      <div className="rounded border border-zinc-200 bg-white px-3 py-2 text-sm shadow-lg">
-                        <span className="text-zinc-600">
-                          {p.variantCount} variant{p.variantCount !== 1 ? "s" : ""}:{" "}
-                        </span>
-                        <span className="font-medium">{p.groupCount} groups</span>
-                      </div>
-                    );
-                  }}
-                />
-                <Bar
-                  dataKey="groupCount"
-                  fill={BAR_COLORS[2]}
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            <>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={variantDistWithFill}
+                  margin={{ left: 24, right: 24, top: 24, bottom: 48 }}
+                  barCategoryGap="20%"
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#e4e4e7"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="variantCount"
+                    type="number"
+                    tick={{ fontSize: 12, fill: "#52525b" }}
+                    allowDecimals={false}
+                    label={{
+                      value: "Variant count",
+                      position: "insideBottom",
+                      offset: -24,
+                      style: { fill: "#71717a", fontSize: 12 },
+                    }}
+                  />
+                  <YAxis
+                    scale="log"
+                    domain={[1, "auto"]}
+                    tick={{ fontSize: 12, fill: "#52525b" }}
+                    label={{
+                      value: "Number of groups",
+                      angle: -90,
+                      position: "insideLeft",
+                      style: { fill: "#71717a", fontSize: 12 },
+                    }}
+                  />
+                  <Tooltip
+                    content={({ payload }: { payload: TooltipPayload }) => {
+                      const p = payload?.[0]?.payload as
+                        | { variantCount: number; groupCount: number }
+                        | undefined;
+                      if (!p) return null;
+                      return (
+                        <div className="rounded border border-zinc-200 bg-white px-3 py-2 text-sm shadow-lg">
+                          <span className="text-zinc-600">
+                            {p.variantCount} variant{p.variantCount !== 1 ? "s" : ""}:{" "}
+                          </span>
+                          <span className="font-medium">{p.groupCount} groups</span>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Bar
+                    dataKey="groupCount"
+                    fill={BAR_COLORS[2]}
+                    radius={[4, 4, 0, 0]}
+                    cursor="pointer"
+                    onClick={(data) =>
+                      setSelectedVariantCount(
+                        (data?.payload as { variantCount?: number } | undefined)
+                          ?.variantCount ?? null
+                      )
+                    }
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+              {selectedVariantCount != null &&
+                groupsWithSelectedVariantCount.length > 0 && (
+                  <div className="mt-4 border-t border-zinc-200 pt-4">
+                    <h3 className="mb-2 text-sm font-semibold text-zinc-800">
+                      Groups with {selectedVariantCount} variant
+                      {selectedVariantCount !== 1 ? "s" : ""} (
+                      {groupsWithSelectedVariantCount.length})
+                    </h3>
+                    <div className="overflow-hidden rounded border border-zinc-200 bg-white">
+                      <table className="w-full table-fixed text-left text-sm">
+                        <thead className="bg-zinc-50">
+                          <tr className="border-b border-zinc-200">
+                            <th className="w-[55%] px-3 py-2 font-medium text-zinc-700">
+                              Representative
+                            </th>
+                            <th className="w-[15%] px-3 py-2 font-medium text-zinc-700">
+                              Total length (km)
+                            </th>
+                            <th className="w-[15%] px-3 py-2 font-medium text-zinc-700">
+                              Segment count
+                            </th>
+                            <th className="w-[15%] px-3 py-2 font-medium text-zinc-700">
+                              Variants
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {groupsWithSelectedVariantCount.map(([groupId, g]) => {
+                            const isExpanded = expandedVariantsGroupId === groupId;
+                            return (
+                              <tr
+                                key={groupId}
+                                className="border-b border-zinc-100 last:border-0 align-top"
+                              >
+                                <td className="px-3 py-2 font-medium text-zinc-900">
+                                  {g.representative}
+                                </td>
+                                <td className="px-3 py-2 text-zinc-700">
+                                  {(g.total_length / LENGTH_M_TO_KM).toFixed(3)}
+                                </td>
+                                <td className="px-3 py-2 text-zinc-700">
+                                  {g.segment_count.toLocaleString()}
+                                </td>
+                                <td className="w-[15%] px-3 py-2 text-zinc-700">
+                                  <button
+                                    type="button"
+                                    title="Click to expand full list"
+                                    onClick={() =>
+                                      setExpandedVariantsGroupId((id) =>
+                                        id === groupId ? null : groupId
+                                      )
+                                    }
+                                    className="flex w-full items-center gap-1 text-left text-zinc-700 hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-1 rounded"
+                                  >
+                                    <span className="min-w-0 truncate text-xs">
+                                      {variantPreview(g.variants)}
+                                    </span>
+                                    <span className="shrink-0 text-xs text-zinc-500">
+                                      {isExpanded ? "▼" : "▶"}
+                                    </span>
+                                  </button>
+                                  {isExpanded && (
+                                    <div className="mt-1 space-y-0.5 text-xs text-zinc-700">
+                                      {g.variants.map((v, i) => (
+                                        <div key={`${groupId}-variant-${i}`}>{v}</div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+            </>
           )}
         </div>
       </section>
+      <div className="min-h-96 shrink-0" aria-hidden />
     </div>
   );
 }
