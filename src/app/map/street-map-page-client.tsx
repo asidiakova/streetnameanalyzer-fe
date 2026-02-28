@@ -280,17 +280,17 @@ export function StreetMapPageClient({
               <dd className="font-medium text-zinc-900">
                 {computedStats.totalLengthKm.toFixed(1)} km
               </dd>
-              <dt className="text-zinc-500">Segments</dt>
+              <dt className="text-zinc-500">Streets</dt>
               <dd className="font-medium text-zinc-900">
-                {computedStats.totalSegments.toLocaleString()}
+                {computedStats.totalStreets.toLocaleString()}
               </dd>
               <dt className="text-zinc-500">Avg group size</dt>
               <dd className="font-medium text-zinc-900">
                 {computedStats.avgGroupSize}
               </dd>
-              <dt className="text-zinc-500">Avg length/segment</dt>
+              <dt className="text-zinc-500">Avg length/street</dt>
               <dd className="font-medium text-zinc-900">
-                {computedStats.avgLengthPerSegmentM} m
+                {computedStats.avgLengthPerStreetM} m
               </dd>
               {methodEval && (
                 <>
@@ -408,7 +408,7 @@ export function StreetMapPageClient({
                       </div>
                       <div className="mt-0.5 text-zinc-500">
                         {(group.total_length / LENGTH_M_TO_KM).toFixed(1)} km
-                        · {group.segment_count} segment
+                        · {group.segment_count} street
                         {group.segment_count !== 1 ? "s" : ""}
                       </div>
                       {!isSelected && group.variants.length > 1 && (

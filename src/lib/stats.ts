@@ -6,9 +6,9 @@ export type MethodStats = {
   totalGroups: number;
   totalNames: number;
   totalLengthKm: number;
-  totalSegments: number;
+  totalStreets: number;
   avgGroupSize: number;
-  avgLengthPerSegmentM: number;
+  avgLengthPerStreetM: number;
 };
 
 export function computeMethodStats(method: MethodData | undefined): MethodStats | null {
@@ -17,20 +17,20 @@ export function computeMethodStats(method: MethodData | undefined): MethodStats 
   const totalGroups = groups.length;
   const totalNames = Object.keys(method.mapping).length;
   const totalLengthM = groups.reduce((s, g) => s + g.total_length, 0);
-  const totalSegments = groups.reduce((s, g) => s + g.segment_count, 0);
+  const totalStreets = groups.reduce((s, g) => s + g.segment_count, 0);
   const avgGroupSize =
     totalGroups > 0
       ? groups.reduce((s, g) => s + g.variants.length, 0) / totalGroups
       : 0;
-  const avgLengthPerSegmentM =
-    totalSegments > 0 ? totalLengthM / totalSegments : 0;
+  const avgLengthPerStreetM =
+    totalStreets > 0 ? totalLengthM / totalStreets : 0;
   return {
     totalGroups,
     totalNames,
     totalLengthKm: totalLengthM / LENGTH_M_TO_KM,
-    totalSegments,
+    totalStreets,
     avgGroupSize: Math.round(avgGroupSize * 10) / 10,
-    avgLengthPerSegmentM: Math.round(avgLengthPerSegmentM * 10) / 10,
+    avgLengthPerStreetM: Math.round(avgLengthPerStreetM * 10) / 10,
   };
 }
 
@@ -44,9 +44,9 @@ export function getTopGroupsByLength(
     .slice(0, n);
 }
 
-export function getSegmentCountDistribution(
+export function getStreetCountDistribution(
   method: MethodData | undefined
-): { segmentCount: number; groupCount: number }[] {
+): { streetCount: number; groupCount: number }[] {
   if (!method) return [];
   const counts: Record<number, number> = {};
   for (const g of Object.values(method.groups)) {
@@ -54,8 +54,8 @@ export function getSegmentCountDistribution(
     counts[c] = (counts[c] ?? 0) + 1;
   }
   return Object.entries(counts)
-    .map(([k, v]) => ({ segmentCount: Number(k), groupCount: v }))
-    .sort((a, b) => a.segmentCount - b.segmentCount);
+    .map(([k, v]) => ({ streetCount: Number(k), groupCount: v }))
+    .sort((a, b) => a.streetCount - b.streetCount);
 }
 
 export function getVariantCountDistribution(

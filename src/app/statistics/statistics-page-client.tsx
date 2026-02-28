@@ -14,7 +14,7 @@ import type { Mappings } from "@/types/mappings";
 import type { Evaluation } from "@/types/evaluation";
 import {
   getTopGroupsByLength,
-  getSegmentCountDistribution,
+  getStreetCountDistribution,
   getVariantCountDistribution,
   LENGTH_M_TO_KM,
 } from "@/lib/stats";
@@ -34,7 +34,7 @@ function formatMethodLabel(key: string): string {
   return key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-type ChartTab = "length" | "segments" | "variants";
+type ChartTab = "length" | "streets" | "variants";
 
 type TooltipPayload = ReadonlyArray<{ payload: unknown }> | undefined;
 
@@ -55,13 +55,13 @@ export function StatisticsPageClient({
   const [selectedVariantCount, setSelectedVariantCount] = useState<
     number | null
   >(null);
-  const [selectedSegmentCount, setSelectedSegmentCount] = useState<
+  const [selectedStreetCount, setSelectedStreetCount] = useState<
     number | null
   >(null);
   const [expandedVariantsGroupId, setExpandedVariantsGroupId] = useState<
     string | null
   >(null);
-  const [expandedSegmentsGroupId, setExpandedSegmentsGroupId] = useState<
+  const [expandedStreetsGroupId, setExpandedStreetsGroupId] = useState<
     string | null
   >(null);
 
@@ -92,8 +92,8 @@ export function StatisticsPageClient({
     return items.reverse();
   }, [method]);
 
-  const segmentDist = useMemo(
-    () => getSegmentCountDistribution(method),
+  const streetDist = useMemo(
+    () => getStreetCountDistribution(method),
     [method]
   );
 
@@ -102,16 +102,16 @@ export function StatisticsPageClient({
     [method]
   );
 
-  const segmentDistWithFill = useMemo(() => {
-    const n = segmentDist.length;
-    return segmentDist.map((d, i) => ({
+  const streetDistWithFill = useMemo(() => {
+    const n = streetDist.length;
+    return streetDist.map((d, i) => ({
       ...d,
       fill: hexToRgba(
         BAR_COLORS[1],
         0.85 + (0.15 * (n - i)) / Math.max(n, 1)
       ),
     }));
-  }, [segmentDist]);
+  }, [streetDist]);
 
   const variantDistWithFill = useMemo(() => {
     const n = variantDist.length;
@@ -131,16 +131,16 @@ export function StatisticsPageClient({
     ).filter(([, g]) => g.variants.length === selectedVariantCount);
   }, [method, selectedVariantCount]);
 
-  const groupsWithSelectedSegmentCount = useMemo(() => {
-    if (selectedSegmentCount == null || !method) return [];
+  const groupsWithSelectedStreetCount = useMemo(() => {
+    if (selectedStreetCount == null || !method) return [];
     return (
       Object.entries(method.groups) as [string, (typeof method.groups)[string]][]
-    ).filter(([, g]) => g.segment_count === selectedSegmentCount);
-  }, [method, selectedSegmentCount]);
+    ).filter(([, g]) => g.segment_count === selectedStreetCount);
+  }, [method, selectedStreetCount]);
 
   const chartTabs: { id: ChartTab; label: string }[] = [
     { id: "length", label: "Top groups by length" },
-    { id: "segments", label: "Segment count distribution" },
+    { id: "streets", label: "Street count distribution" },
     { id: "variants", label: "Variants per group distribution" },
   ];
 
@@ -329,7 +329,7 @@ export function StatisticsPageClient({
               {selectedLengthGroupId && method?.groups[selectedLengthGroupId] && (
                 <div className="mt-4 border-t border-zinc-200 pt-4">
                   <h3 className="mb-2 text-sm font-semibold text-zinc-800">
-                    Segments / variants in this group
+                    Streets / variants in this group
                   </h3>
                   <div className="overflow-x-auto rounded border border-zinc-200">
                     <table className="w-full min-w-md text-left text-sm">
@@ -361,12 +361,12 @@ export function StatisticsPageClient({
             </>
           )}
 
-          {chartTab === "segments" && (
+          {chartTab === "streets" && (
             <>
               <div className="h-96 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={segmentDistWithFill}
+                    data={streetDistWithFill}
                     margin={{ left: 24, right: 24, top: 24, bottom: 48 }}
                     barCategoryGap="15%"
                     barSize={32}
@@ -377,12 +377,12 @@ export function StatisticsPageClient({
                       vertical={false}
                     />
                     <XAxis
-                      dataKey="segmentCount"
+                      dataKey="streetCount"
                       type="category"
                       tick={{ fontSize: 12, fill: "#52525b" }}
                       allowDecimals={false}
                       label={{
-                        value: "Segment count",
+                        value: "Street count",
                         position: "insideBottom",
                         offset: -24,
                         style: { fill: "#71717a", fontSize: 12 },
@@ -402,15 +402,15 @@ export function StatisticsPageClient({
                     <Tooltip
                       content={({ payload }: { payload: TooltipPayload }) => {
                         const p = payload?.[0]?.payload as
-                          | { segmentCount: number; groupCount: number }
+                          | { streetCount: number; groupCount: number }
                           | undefined;
                         if (!p) return null;
                         return (
                           <div className="rounded border border-zinc-200 bg-white px-3 py-2 text-sm shadow-lg">
                             <span className="text-zinc-600">
-                              {p.segmentCount} segment{p.segmentCount !== 1 ? "s" : ""}:{" "}
+                              {p.streetCount} street{p.streetCount !== 1 ? "s" : ""}:{" "}
                             </span>
-                            <span className="font-medium">{p.groupCount} group{p.groupCount !== 1 ? "s" : ""}:{" "}</span>
+                            <span className="font-medium">{p.groupCount} group{p.groupCount !== 1 ? "s" : ""}</span>
                           </div>
                         );
                       }}
@@ -421,22 +421,22 @@ export function StatisticsPageClient({
                       radius={[4, 4, 0, 0]}
                       cursor="pointer"
                       onClick={(data) =>
-                        setSelectedSegmentCount(
-                          (data?.payload as { segmentCount?: number } | undefined)
-                            ?.segmentCount ?? null
+                        setSelectedStreetCount(
+                          (data?.payload as { streetCount?: number } | undefined)
+                            ?.streetCount ?? null
                         )
                       }
                     />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-              {selectedSegmentCount != null &&
-                groupsWithSelectedSegmentCount.length > 0 && (
+              {selectedStreetCount != null &&
+                groupsWithSelectedStreetCount.length > 0 && (
                   <div className="mt-4 border-t border-zinc-200 pt-4">
                     <h3 className="mb-2 text-sm font-semibold text-zinc-800">
-                      Groups with {selectedSegmentCount} segment
-                      {selectedSegmentCount !== 1 ? "s" : ""} (
-                      {groupsWithSelectedSegmentCount.length})
+                      Groups with {selectedStreetCount} street
+                      {selectedStreetCount !== 1 ? "s" : ""} (
+                      {groupsWithSelectedStreetCount.length})
                     </h3>
                     <div className="rounded border border-zinc-200 bg-white overflow-x-auto">
                       <table className="w-full table-fixed text-left text-sm">
@@ -449,7 +449,7 @@ export function StatisticsPageClient({
                               Total length (km)
                             </th>
                             <th className="w-[15%] px-3 py-2 font-medium text-zinc-700">
-                              Segment count
+                              Street count
                             </th>
                             <th className="w-[15%] px-3 py-2 font-medium text-zinc-700">
                               Variants
@@ -457,9 +457,9 @@ export function StatisticsPageClient({
                           </tr>
                         </thead>
                         <tbody>
-                          {groupsWithSelectedSegmentCount.map(([groupId, g]) => {
+                          {groupsWithSelectedStreetCount.map(([groupId, g]) => {
                             const id = String(groupId);
-                            const isExpanded = expandedSegmentsGroupId === id;
+                            const isExpanded = expandedStreetsGroupId === id;
                             return (
                               <Fragment key={id}>
                                 <tr
@@ -479,7 +479,7 @@ export function StatisticsPageClient({
                                       type="button"
                                       title="Click to expand full list"
                                       onClick={() =>
-                                        setExpandedSegmentsGroupId((current) =>
+                                        setExpandedStreetsGroupId((current) =>
                                           current === id ? null : id
                                         )
                                       }
@@ -603,7 +603,7 @@ export function StatisticsPageClient({
                               Total length (km)
                             </th>
                             <th className="w-[15%] px-3 py-2 font-medium text-zinc-700">
-                              Segment count
+                              Street count
                             </th>
                             <th className="w-[15%] px-3 py-2 font-medium text-zinc-700">
                               Variants
