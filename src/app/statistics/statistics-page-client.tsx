@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, Fragment } from "react";
 import {
   BarChart,
   Bar,
@@ -55,7 +55,13 @@ export function StatisticsPageClient({
   const [selectedVariantCount, setSelectedVariantCount] = useState<
     number | null
   >(null);
+  const [selectedSegmentCount, setSelectedSegmentCount] = useState<
+    number | null
+  >(null);
   const [expandedVariantsGroupId, setExpandedVariantsGroupId] = useState<
+    string | null
+  >(null);
+  const [expandedSegmentsGroupId, setExpandedSegmentsGroupId] = useState<
     string | null
   >(null);
 
@@ -124,6 +130,13 @@ export function StatisticsPageClient({
       Object.entries(method.groups) as [string, (typeof method.groups)[string]][]
     ).filter(([, g]) => g.variants.length === selectedVariantCount);
   }, [method, selectedVariantCount]);
+
+  const groupsWithSelectedSegmentCount = useMemo(() => {
+    if (selectedSegmentCount == null || !method) return [];
+    return (
+      Object.entries(method.groups) as [string, (typeof method.groups)[string]][]
+    ).filter(([, g]) => g.segment_count === selectedSegmentCount);
+  }, [method, selectedSegmentCount]);
 
   const chartTabs: { id: ChartTab; label: string }[] = [
     { id: "length", label: "Top groups by length" },
@@ -259,10 +272,11 @@ export function StatisticsPageClient({
           ))}
         </div>
 
-        <div className="h-100 w-full overflow-visible rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
+        <div className="w-full rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
           {chartTab === "length" && (
             <>
-              <ResponsiveContainer width="100%" height="100%">
+              <div className="h-96 w-full">
+                <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={topByLength}
                   layout="vertical"
@@ -311,6 +325,7 @@ export function StatisticsPageClient({
                   />
                 </BarChart>
               </ResponsiveContainer>
+              </div>
               {selectedLengthGroupId && method?.groups[selectedLengthGroupId] && (
                 <div className="mt-4 border-t border-zinc-200 pt-4">
                   <h3 className="mb-2 text-sm font-semibold text-zinc-800">
@@ -347,68 +362,164 @@ export function StatisticsPageClient({
           )}
 
           {chartTab === "segments" && (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={segmentDistWithFill}
-                margin={{ left: 24, right: 24, top: 24, bottom: 48 }}
-                barCategoryGap="20%"
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#e4e4e7"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="segmentCount"
-                  type="number"
-                  tick={{ fontSize: 12, fill: "#52525b" }}
-                  allowDecimals={false}
-                  label={{
-                    value: "Segment count",
-                    position: "insideBottom",
-                    offset: -24,
-                    style: { fill: "#71717a", fontSize: 12 },
-                  }}
-                />
-                <YAxis
-                  scale="log"
-                  domain={[1, "auto"]}
-                  tick={{ fontSize: 12, fill: "#52525b" }}
-                  label={{
-                    value: "Number of groups",
-                    angle: -90,
-                    position: "insideLeft",
-                    style: { fill: "#71717a", fontSize: 12 },
-                  }}
-                />
-                <Tooltip
-                  content={({ payload }: { payload: TooltipPayload }) => {
-                    const p = payload?.[0]?.payload as
-                      | { segmentCount: number; groupCount: number }
-                      | undefined;
-                    if (!p) return null;
-                    return (
-                      <div className="rounded border border-zinc-200 bg-white px-3 py-2 text-sm shadow-lg">
-                        <span className="text-zinc-600">
-                          {p.segmentCount} segment{p.segmentCount !== 1 ? "s" : ""}:{" "}
-                        </span>
-                        <span className="font-medium">{p.groupCount} groups</span>
-                      </div>
-                    );
-                  }}
-                />
-                <Bar
-                  dataKey="groupCount"
-                  fill={BAR_COLORS[1]}
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            <>
+              <div className="h-96 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={segmentDistWithFill}
+                    margin={{ left: 24, right: 24, top: 24, bottom: 48 }}
+                    barCategoryGap="15%"
+                    barSize={32}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="#e4e4e7"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="segmentCount"
+                      type="category"
+                      tick={{ fontSize: 12, fill: "#52525b" }}
+                      allowDecimals={false}
+                      label={{
+                        value: "Segment count",
+                        position: "insideBottom",
+                        offset: -24,
+                        style: { fill: "#71717a", fontSize: 12 },
+                      }}
+                    />
+                    <YAxis
+                      scale="log"
+                      domain={[0.5, "auto"]}
+                      tick={{ fontSize: 12, fill: "#52525b" }}
+                      label={{
+                        value: "Number of groups",
+                        angle: -90,
+                        position: "insideLeft",
+                        style: { fill: "#71717a", fontSize: 12 },
+                      }}
+                    />
+                    <Tooltip
+                      content={({ payload }: { payload: TooltipPayload }) => {
+                        const p = payload?.[0]?.payload as
+                          | { segmentCount: number; groupCount: number }
+                          | undefined;
+                        if (!p) return null;
+                        return (
+                          <div className="rounded border border-zinc-200 bg-white px-3 py-2 text-sm shadow-lg">
+                            <span className="text-zinc-600">
+                              {p.segmentCount} segment{p.segmentCount !== 1 ? "s" : ""}:{" "}
+                            </span>
+                            <span className="font-medium">{p.groupCount} groups</span>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Bar
+                      dataKey="groupCount"
+                      fill={BAR_COLORS[1]}
+                      radius={[4, 4, 0, 0]}
+                      cursor="pointer"
+                      onClick={(data) =>
+                        setSelectedSegmentCount(
+                          (data?.payload as { segmentCount?: number } | undefined)
+                            ?.segmentCount ?? null
+                        )
+                      }
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              {selectedSegmentCount != null &&
+                groupsWithSelectedSegmentCount.length > 0 && (
+                  <div className="mt-4 border-t border-zinc-200 pt-4">
+                    <h3 className="mb-2 text-sm font-semibold text-zinc-800">
+                      Groups with {selectedSegmentCount} segment
+                      {selectedSegmentCount !== 1 ? "s" : ""} (
+                      {groupsWithSelectedSegmentCount.length})
+                    </h3>
+                    <div className="rounded border border-zinc-200 bg-white overflow-x-auto">
+                      <table className="w-full table-fixed text-left text-sm">
+                        <thead className="bg-zinc-50">
+                          <tr className="border-b border-zinc-200">
+                            <th className="w-[55%] px-3 py-2 font-medium text-zinc-700">
+                              Representative
+                            </th>
+                            <th className="w-[15%] px-3 py-2 font-medium text-zinc-700">
+                              Total length (km)
+                            </th>
+                            <th className="w-[15%] px-3 py-2 font-medium text-zinc-700">
+                              Segment count
+                            </th>
+                            <th className="w-[15%] px-3 py-2 font-medium text-zinc-700">
+                              Variants
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {groupsWithSelectedSegmentCount.map(([groupId, g]) => {
+                            const id = String(groupId);
+                            const isExpanded = expandedSegmentsGroupId === id;
+                            return (
+                              <Fragment key={id}>
+                                <tr
+                                  className="border-b border-zinc-100 last:border-0 align-top"
+                                >
+                                  <td className="px-3 py-2 font-medium text-zinc-900">
+                                    {g.representative}
+                                  </td>
+                                  <td className="px-3 py-2 text-zinc-700">
+                                    {(g.total_length / LENGTH_M_TO_KM).toFixed(3)}
+                                  </td>
+                                  <td className="px-3 py-2 text-zinc-700">
+                                    {g.segment_count.toLocaleString()}
+                                  </td>
+                                  <td className="w-[15%] px-3 py-2 text-zinc-700">
+                                    <button
+                                      type="button"
+                                      title="Click to expand full list"
+                                      onClick={() =>
+                                        setExpandedSegmentsGroupId((current) =>
+                                          current === id ? null : id
+                                        )
+                                      }
+                                      className="flex w-full items-center gap-1 text-left text-zinc-700 hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-1 rounded"
+                                    >
+                                      <span className="min-w-0 truncate text-xs">
+                                        {variantPreview(g.variants)}
+                                      </span>
+                                      <span className="shrink-0 text-xs text-zinc-500">
+                                        {isExpanded ? "▼" : "▶"}
+                                      </span>
+                                    </button>
+                                  </td>
+                                </tr>
+                                {isExpanded && (
+                                  <tr className="border-b border-zinc-100 bg-zinc-50/50">
+                                    <td colSpan={4} className="px-3 py-2">
+                                      <div className="max-h-60 overflow-y-auto space-y-0.5 text-xs text-zinc-700">
+                                        {g.variants.map((v, i) => (
+                                          <div key={`${id}-variant-${i}`}>{v}</div>
+                                        ))}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </Fragment>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+            </>
           )}
 
           {chartTab === "variants" && (
             <>
-              <ResponsiveContainer width="100%" height="100%">
+              <div className="h-96 w-full">
+                <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={variantDistWithFill}
                   margin={{ left: 24, right: 24, top: 24, bottom: 48 }}
@@ -431,21 +542,21 @@ export function StatisticsPageClient({
                       style: { fill: "#71717a", fontSize: 12 },
                     }}
                   />
-                  <YAxis
-                    scale="log"
-                    domain={[1, "auto"]}
-                    tick={{ fontSize: 12, fill: "#52525b" }}
-                    label={{
-                      value: "Number of groups",
-                      angle: -90,
-                      position: "insideLeft",
-                      style: { fill: "#71717a", fontSize: 12 },
-                    }}
-                  />
+                <YAxis
+                  scale="log"
+                  domain={[0.5, "auto"]}
+                  tick={{ fontSize: 12, fill: "#52525b" }}
+                  label={{
+                    value: "Number of groups",
+                    angle: -90,
+                    position: "insideLeft",
+                    style: { fill: "#71717a", fontSize: 12 },
+                  }}
+                />
                   <Tooltip
-                    content={({ payload }: { payload: TooltipPayload }) => {
-                      const p = payload?.[0]?.payload as
-                        | { variantCount: number; groupCount: number }
+                  content={({ payload }: { payload: TooltipPayload }) => {
+                    const p = payload?.[0]?.payload as
+                      | { variantCount: number; groupCount: number }
                         | undefined;
                       if (!p) return null;
                       return (
@@ -471,7 +582,8 @@ export function StatisticsPageClient({
                     }
                   />
                 </BarChart>
-              </ResponsiveContainer>
+                </ResponsiveContainer>
+              </div>
               {selectedVariantCount != null &&
                 groupsWithSelectedVariantCount.length > 0 && (
                   <div className="mt-4 border-t border-zinc-200 pt-4">
@@ -480,7 +592,7 @@ export function StatisticsPageClient({
                       {selectedVariantCount !== 1 ? "s" : ""} (
                       {groupsWithSelectedVariantCount.length})
                     </h3>
-                    <div className="overflow-hidden rounded border border-zinc-200 bg-white">
+                    <div className="rounded border border-zinc-200 bg-white overflow-x-auto">
                       <table className="w-full table-fixed text-left text-sm">
                         <thead className="bg-zinc-50">
                           <tr className="border-b border-zinc-200">
@@ -500,48 +612,54 @@ export function StatisticsPageClient({
                         </thead>
                         <tbody>
                           {groupsWithSelectedVariantCount.map(([groupId, g]) => {
-                            const isExpanded = expandedVariantsGroupId === groupId;
+                            const id = String(groupId);
+                            const isExpanded = expandedVariantsGroupId === id;
                             return (
-                              <tr
-                                key={groupId}
-                                className="border-b border-zinc-100 last:border-0 align-top"
-                              >
-                                <td className="px-3 py-2 font-medium text-zinc-900">
-                                  {g.representative}
-                                </td>
-                                <td className="px-3 py-2 text-zinc-700">
-                                  {(g.total_length / LENGTH_M_TO_KM).toFixed(3)}
-                                </td>
-                                <td className="px-3 py-2 text-zinc-700">
-                                  {g.segment_count.toLocaleString()}
-                                </td>
-                                <td className="w-[15%] px-3 py-2 text-zinc-700">
-                                  <button
-                                    type="button"
-                                    title="Click to expand full list"
-                                    onClick={() =>
-                                      setExpandedVariantsGroupId((id) =>
-                                        id === groupId ? null : groupId
-                                      )
-                                    }
-                                    className="flex w-full items-center gap-1 text-left text-zinc-700 hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-1 rounded"
-                                  >
-                                    <span className="min-w-0 truncate text-xs">
-                                      {variantPreview(g.variants)}
-                                    </span>
-                                    <span className="shrink-0 text-xs text-zinc-500">
-                                      {isExpanded ? "▼" : "▶"}
-                                    </span>
-                                  </button>
-                                  {isExpanded && (
-                                    <div className="mt-1 space-y-0.5 text-xs text-zinc-700">
-                                      {g.variants.map((v, i) => (
-                                        <div key={`${groupId}-variant-${i}`}>{v}</div>
-                                      ))}
-                                    </div>
-                                  )}
-                                </td>
-                              </tr>
+                              <Fragment key={id}>
+                                <tr
+                                  className="border-b border-zinc-100 last:border-0 align-top"
+                                >
+                                  <td className="px-3 py-2 font-medium text-zinc-900">
+                                    {g.representative}
+                                  </td>
+                                  <td className="px-3 py-2 text-zinc-700">
+                                    {(g.total_length / LENGTH_M_TO_KM).toFixed(3)}
+                                  </td>
+                                  <td className="px-3 py-2 text-zinc-700">
+                                    {g.segment_count.toLocaleString()}
+                                  </td>
+                                  <td className="w-[15%] px-3 py-2 text-zinc-700">
+                                    <button
+                                      type="button"
+                                      title="Click to expand full list"
+                                      onClick={() =>
+                                        setExpandedVariantsGroupId((current) =>
+                                          current === id ? null : id
+                                        )
+                                      }
+                                      className="flex w-full items-center gap-1 text-left text-zinc-700 hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-1 rounded"
+                                    >
+                                      <span className="min-w-0 truncate text-xs">
+                                        {variantPreview(g.variants)}
+                                      </span>
+                                      <span className="shrink-0 text-xs text-zinc-500">
+                                        {isExpanded ? "▼" : "▶"}
+                                      </span>
+                                    </button>
+                                  </td>
+                                </tr>
+                                {isExpanded && (
+                                  <tr className="border-b border-zinc-100 bg-zinc-50/50">
+                                    <td colSpan={4} className="px-3 py-2">
+                                      <div className="max-h-60 overflow-y-auto space-y-0.5 text-xs text-zinc-700">
+                                        {g.variants.map((v, i) => (
+                                          <div key={`${id}-variant-${i}`}>{v}</div>
+                                        ))}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </Fragment>
                             );
                           })}
                         </tbody>
@@ -553,7 +671,6 @@ export function StatisticsPageClient({
           )}
         </div>
       </section>
-      <div className="min-h-96 shrink-0" aria-hidden />
     </div>
   );
 }
