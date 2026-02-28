@@ -410,7 +410,7 @@ export function StatisticsPageClient({
                             <span className="text-zinc-600">
                               {p.segmentCount} segment{p.segmentCount !== 1 ? "s" : ""}:{" "}
                             </span>
-                            <span className="font-medium">{p.groupCount} groups</span>
+                            <span className="font-medium">{p.groupCount} group{p.groupCount !== 1 ? "s" : ""}:{" "}</span>
                           </div>
                         );
                       }}
@@ -564,7 +564,7 @@ export function StatisticsPageClient({
                           <span className="text-zinc-600">
                             {p.variantCount} variant{p.variantCount !== 1 ? "s" : ""}:{" "}
                           </span>
-                          <span className="font-medium">{p.groupCount} groups</span>
+                          <span className="font-medium">{p.groupCount} group{p.groupCount !== 1 ? "s" : ""}:{" "}</span>
                         </div>
                       );
                     }}
