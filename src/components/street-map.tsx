@@ -26,9 +26,21 @@ const DEFAULT_STREET_WIDTH = 2;
 
 const EMPTY_NAME_FILTER: maplibregl.FilterSpecification = ["in", "name", ""];
 const FOCUS_PADDING = 80;
-const CLUSTER_MARGIN_DEG = 0.01; // ~1.1 km
+const CLUSTER_MARGIN_DEG = 0.01;
 
 type ClustersIndex = Map<string, maplibregl.LngLatBounds[]>;
+
+const HTML_ESCAPE: Record<string, string> = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
+};
+
+function escapeHtml(text: string): string {
+  return text.replace(/[&<>"']/g, (ch) => HTML_ESCAPE[ch]);
+}
 
 function coordsFromGeometry(geom: GeoJSON.Geometry | null): number[][] {
   if (!geom) return [];
@@ -297,10 +309,4 @@ export function StreetMap({
       className={`relative w-full h-full min-h-100 ${className}`}
     />
   );
-}
-
-function escapeHtml(text: string): string {
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
 }

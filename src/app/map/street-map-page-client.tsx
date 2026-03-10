@@ -5,9 +5,13 @@ import dynamic from "next/dynamic";
 import type { Mappings, NormalizedGroup } from "@/types/mappings";
 import type { Evaluation, ProblemEntity } from "@/types/evaluation";
 import { computeMethodStats, LENGTH_M_TO_KM } from "@/lib/stats";
+import { formatMethodLabel } from "@/lib/format";
 
 const StreetMap = dynamic(
-  () => import("@/components/street-map").then((m) => ({ default: m.StreetMap })),
+  () =>
+    import("@/components/street-map").then((m) => ({
+      default: m.StreetMap,
+    })),
   {
     ssr: false,
     loading: () => (
@@ -20,9 +24,11 @@ const StreetMap = dynamic(
 
 type TabId = "streets" | "collisions" | "problems";
 
-function formatMethodLabel(key: string): string {
-  return key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
+const TABS: { id: TabId; label: string }[] = [
+  { id: "streets", label: "Streets" },
+  { id: "collisions", label: "Collisions" },
+  { id: "problems", label: "Problem entities" },
+];
 
 function filterGroupsBySearch(
   entries: [string, NormalizedGroup][],
@@ -36,16 +42,20 @@ function filterGroupsBySearch(
   });
 }
 
-function downloadJson(filename: string, data: unknown) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], {
-    type: "application/json",
-  });
+function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function downloadJson(filename: string, data: unknown) {
+  downloadBlob(
+    new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }),
+    filename
+  );
 }
 
 function escapeCsvField(value: string): string {
@@ -57,13 +67,10 @@ function downloadCsv(filename: string, rows: string[][]) {
   const csv = rows
     .map((row) => row.map((cell) => escapeCsvField(String(cell))).join(","))
     .join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadBlob(
+    new Blob([csv], { type: "text/csv;charset=utf-8" }),
+    filename
+  );
 }
 
 function visibleGroupsToCsvRows(
@@ -121,7 +128,7 @@ export function StreetMapPageClient({
   evaluation,
 }: {
   mappings: Mappings;
-  evaluation: Evaluation | null;
+  evaluation: Evaluation;
 }) {
   const [activeMethod, setActiveMethod] = useState<string>("");
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
@@ -140,8 +147,8 @@ export function StreetMapPageClient({
       ? activeMethod
       : methodKeys[0] ?? "";
 
-  const method = mappings?.[effectiveMethod];
-  const methodEval = evaluation?.[effectiveMethod];
+  const method = mappings[effectiveMethod];
+  const methodEval = evaluation[effectiveMethod];
   const computedStats = useMemo(
     () => computeMethodStats(method),
     [method]
@@ -149,8 +156,9 @@ export function StreetMapPageClient({
 
   const sortedGroupsAll = useMemo(() => {
     if (!method) return [];
-    return (Object.entries(method.groups) as [string, NormalizedGroup][])
-      .sort(([, a], [, b]) => b.total_length - a.total_length);
+    return (
+      Object.entries(method.groups) as [string, NormalizedGroup][]
+    ).sort(([, a], [, b]) => b.total_length - a.total_length);
   }, [method]);
 
   const collisionGroupIds = useMemo(() => {
@@ -167,7 +175,9 @@ export function StreetMapPageClient({
   );
 
   const selectedGroup =
-    selectedGroupId && method ? method.groups[selectedGroupId] ?? null : null;
+    selectedGroupId && method
+      ? (method.groups[selectedGroupId] ?? null)
+      : null;
   const selectedVariants = selectedGroup?.variants ?? null;
 
   const clearHighlight = useCallback(() => {
@@ -175,9 +185,19 @@ export function StreetMapPageClient({
     setFocusClusterIndex(0);
   }, []);
 
-  const handleClusterCountChange = useCallback((count: number) => {
-    setClusterCount(count);
-  }, []);
+  const toggleGroup = useCallback(
+    (groupId: string) => {
+      if (selectedGroupId === groupId) {
+        setSelectedGroupId(null);
+        setFocusClusterIndex(0);
+      } else {
+        setSelectedGroupId(groupId);
+        setFocusClusterIndex(0);
+        setFocusTrigger((t) => t + 1);
+      }
+    },
+    [selectedGroupId]
+  );
 
   const handleExportVisible = useCallback(() => {
     if (!method) return;
@@ -192,7 +212,11 @@ export function StreetMapPageClient({
     const group = method.groups[selectedGroupId];
     if (!group) return;
     const filename = `street-group-${effectiveMethod}-${selectedGroupId}.json`;
-    downloadJson(filename, { method: effectiveMethod, group_id: selectedGroupId, ...group });
+    downloadJson(filename, {
+      method: effectiveMethod,
+      group_id: selectedGroupId,
+      ...group,
+    });
   }, [method, effectiveMethod, selectedGroupId]);
 
   const handleExportVisibleCsv = useCallback(() => {
@@ -210,26 +234,22 @@ export function StreetMapPageClient({
       selectedGroupId,
       group
     );
-    downloadCsv(`street-group-${effectiveMethod}-${selectedGroupId}.csv`, rows);
+    downloadCsv(
+      `street-group-${effectiveMethod}-${selectedGroupId}.csv`,
+      rows
+    );
   }, [method, effectiveMethod, selectedGroupId]);
 
   const sortedProblemEntities = useMemo(() => {
     if (!methodEval?.problem_entities) return [];
     const list = [...methodEval.problem_entities];
-    if (problemSort === "score")
-      list.sort((a, b) => a.score - b.score);
+    if (problemSort === "score") list.sort((a, b) => a.score - b.score);
     else
       list.sort((a, b) =>
         a.entity_label.localeCompare(b.entity_label, "sk")
       );
     return list;
   }, [methodEval, problemSort]);
-
-  const tabs: { id: TabId; label: string }[] = [
-    { id: "streets", label: "Streets" },
-    { id: "collisions", label: "Collisions" },
-    { id: "problems", label: "Problem entities" },
-  ];
 
   return (
     <div className="flex h-full min-h-0 w-full overflow-hidden">
@@ -250,15 +270,11 @@ export function StreetMapPageClient({
             }}
             className="w-full rounded border border-zinc-200 bg-white px-2 py-1.5 text-sm text-zinc-900"
           >
-            {mappings
-              ? Object.keys(mappings).map((key) => (
-                  <option key={key} value={key}>
-                    {formatMethodLabel(key)}
-                  </option>
-                ))
-              : (
-                  <option value="suffix_stripping">Suffix stripping</option>
-                )}
+            {Object.keys(mappings).map((key) => (
+              <option key={key} value={key}>
+                {formatMethodLabel(key)}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -317,7 +333,7 @@ export function StreetMapPageClient({
         )}
 
         <div className="flex shrink-0 gap-1 border-b border-zinc-200 px-2 pt-2">
-          {tabs.map(({ id, label }) => (
+          {TABS.map(({ id, label }) => (
             <button
               key={id}
               type="button"
@@ -364,27 +380,11 @@ export function StreetMapPageClient({
                       key={canonical}
                       role="button"
                       tabIndex={0}
-                      onClick={() => {
-                        if (selectedGroupId === canonical) {
-                          setSelectedGroupId(null);
-                          setFocusClusterIndex(0);
-                        } else {
-                          setSelectedGroupId(canonical);
-                          setFocusClusterIndex(0);
-                          setFocusTrigger((t) => t + 1);
-                        }
-                      }}
+                      onClick={() => toggleGroup(canonical)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          if (selectedGroupId === canonical) {
-                            setSelectedGroupId(null);
-                            setFocusClusterIndex(0);
-                          } else {
-                            setSelectedGroupId(canonical);
-                            setFocusClusterIndex(0);
-                            setFocusTrigger((t) => t + 1);
-                          }
+                          toggleGroup(canonical);
                         }
                       }}
                       className={`cursor-pointer rounded border p-2 text-sm transition-colors hover:bg-zinc-100 ${
@@ -407,8 +407,8 @@ export function StreetMapPageClient({
                         )}
                       </div>
                       <div className="mt-0.5 text-zinc-500">
-                        {(group.total_length / LENGTH_M_TO_KM).toFixed(1)} km
-                        · {group.segment_count} street
+                        {(group.total_length / LENGTH_M_TO_KM).toFixed(1)} km ·{" "}
+                        {group.segment_count} street
                         {group.segment_count !== 1 ? "s" : ""}
                       </div>
                       {!isSelected && group.variants.length > 1 && (
@@ -452,44 +452,43 @@ export function StreetMapPageClient({
                   No evaluation data for this method.
                 </p>
               ) : (
-              <ul className="space-y-2">
-                {methodEval.collisions.map((collision) => {
-                  const group = method?.groups[collision.group_id];
-                  const rep = group?.representative ?? collision.group_id;
-                  const isSelected = selectedGroupId === collision.group_id;
-                  return (
-                    <li
-                      key={collision.group_id}
-                      className={`rounded border p-2 text-sm ${
-                        isSelected
-                          ? "border-blue-500 bg-blue-50"
-                          : "border-zinc-200 bg-zinc-50/50"
-                      }`}
-                    >
-                      <div className="font-medium text-zinc-900">{rep}</div>
-                      <div className="mt-1 text-xs text-zinc-500">
-                        {collision.entities.map((e) => e.label).join(" · ")}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (selectedGroupId === collision.group_id) {
-                            setSelectedGroupId(null);
-                            setFocusClusterIndex(0);
-                          } else {
-                            setSelectedGroupId(collision.group_id);
-                            setFocusClusterIndex(0);
-                            setFocusTrigger((t) => t + 1);
-                          }
-                        }}
-                        className="mt-2 rounded bg-zinc-200 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-300"
+                <ul className="space-y-2">
+                  {methodEval.collisions.map((collision) => {
+                    const group = method?.groups[collision.group_id];
+                    const rep =
+                      group?.representative ?? collision.group_id;
+                    const isSelected =
+                      selectedGroupId === collision.group_id;
+                    return (
+                      <li
+                        key={collision.group_id}
+                        className={`rounded border p-2 text-sm ${
+                          isSelected
+                            ? "border-blue-500 bg-blue-50"
+                            : "border-zinc-200 bg-zinc-50/50"
+                        }`}
                       >
-                        {isSelected ? "Clear map" : "Show on map"}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
+                        <div className="font-medium text-zinc-900">
+                          {rep}
+                        </div>
+                        <div className="mt-1 text-xs text-zinc-500">
+                          {collision.entities
+                            .map((e) => e.label)
+                            .join(" · ")}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            toggleGroup(collision.group_id)
+                          }
+                          className="mt-2 rounded bg-zinc-200 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-300"
+                        >
+                          {isSelected ? "Clear map" : "Show on map"}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
             </div>
           )}
@@ -497,55 +496,64 @@ export function StreetMapPageClient({
           {activeTab === "problems" && (
             <div className="space-y-3">
               <h2 className="text-sm font-semibold text-zinc-500">
-                Problem entities ({methodEval?.problem_entities.length ?? 0})
+                Problem entities (
+                {methodEval?.problem_entities.length ?? 0})
               </h2>
               <p className="text-xs text-zinc-500">
-                Entities whose variants were split across too many groups (low
-                score = worse).
+                Entities whose variants were split across too many groups
+                (low score = worse).
               </p>
               {!methodEval ? (
                 <p className="text-xs text-zinc-500">
                   No evaluation data for this method.
                 </p>
               ) : (
-              <>
-              <div className="flex items-center gap-2">
-                <label htmlFor="problem-sort" className="text-xs text-zinc-500">
-                  Sort by
-                </label>
-                <select
-                  id="problem-sort"
-                  value={problemSort}
-                  onChange={(e) =>
-                    setProblemSort(e.target.value as "score" | "entity_label")
-                  }
-                  className="rounded border border-zinc-200 px-2 py-1 text-xs text-zinc-900"
-                >
-                  <option value="score">Score (worst first)</option>
-                  <option value="entity_label">Name</option>
-                </select>
-              </div>
-              <ul className="space-y-1.5">
-                {sortedProblemEntities.map((p: ProblemEntity) => (
-                  <li
-                    key={p.wikidata_id}
-                    className="rounded border border-zinc-100 bg-zinc-50/50 px-2 py-1.5 text-sm"
-                  >
-                    <div className="font-medium text-zinc-900">
-                      {p.entity_label}
-                    </div>
-                    <div className="mt-0.5 flex gap-3 text-xs text-zinc-500">
-                      <span>Score: {(p.score * 100).toFixed(0)}%</span>
-                      <span>
-                        {p.total_variants} variant
-                        {p.total_variants !== 1 ? "s" : ""} → {p.unique_groups}{" "}
-                        group{p.unique_groups !== 1 ? "s" : ""}
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              </>
+                <>
+                  <div className="flex items-center gap-2">
+                    <label
+                      htmlFor="problem-sort"
+                      className="text-xs text-zinc-500"
+                    >
+                      Sort by
+                    </label>
+                    <select
+                      id="problem-sort"
+                      value={problemSort}
+                      onChange={(e) =>
+                        setProblemSort(
+                          e.target.value as "score" | "entity_label"
+                        )
+                      }
+                      className="rounded border border-zinc-200 px-2 py-1 text-xs text-zinc-900"
+                    >
+                      <option value="score">Score (worst first)</option>
+                      <option value="entity_label">Name</option>
+                    </select>
+                  </div>
+                  <ul className="space-y-1.5">
+                    {sortedProblemEntities.map((p: ProblemEntity) => (
+                      <li
+                        key={p.wikidata_id}
+                        className="rounded border border-zinc-100 bg-zinc-50/50 px-2 py-1.5 text-sm"
+                      >
+                        <div className="font-medium text-zinc-900">
+                          {p.entity_label}
+                        </div>
+                        <div className="mt-0.5 flex gap-3 text-xs text-zinc-500">
+                          <span>
+                            Score: {(p.score * 100).toFixed(0)}%
+                          </span>
+                          <span>
+                            {p.total_variants} variant
+                            {p.total_variants !== 1 ? "s" : ""} →{" "}
+                            {p.unique_groups} group
+                            {p.unique_groups !== 1 ? "s" : ""}
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </>
               )}
             </div>
           )}
@@ -589,7 +597,9 @@ export function StreetMapPageClient({
                   CSV
                 </button>
               </div>
-              <p className="text-xs text-zinc-500">Export selected group</p>
+              <p className="text-xs text-zinc-500">
+                Export selected group
+              </p>
             </>
           )}
         </div>
@@ -599,7 +609,7 @@ export function StreetMapPageClient({
           selectedVariants={selectedVariants}
           focusClusterIndex={focusClusterIndex}
           focusTrigger={focusTrigger}
-          onClusterCountChangeAction={handleClusterCountChange}
+          onClusterCountChangeAction={setClusterCount}
           className="h-full w-full"
         />
         {selectedGroupId && clusterCount > 0 && (
@@ -608,7 +618,7 @@ export function StreetMapPageClient({
               type="button"
               onClick={() => {
                 setFocusClusterIndex((i) =>
-                    i-1 < 0 ? clusterCount - 1 : i - 1
+                  i - 1 < 0 ? clusterCount - 1 : i - 1
                 );
                 setFocusTrigger((t) => t + 1);
               }}
@@ -628,7 +638,7 @@ export function StreetMapPageClient({
               type="button"
               onClick={() => {
                 setFocusClusterIndex((i) =>
-                    i+1 >= clusterCount ? 0 : i + 1
+                  i + 1 >= clusterCount ? 0 : i + 1
                 );
                 setFocusTrigger((t) => t + 1);
               }}
