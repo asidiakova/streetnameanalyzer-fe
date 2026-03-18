@@ -21,19 +21,19 @@ export function GroupTable({
       <table className="w-full table-fixed text-left text-sm">
         <thead className="bg-zinc-50">
           <tr className="border-b border-zinc-200">
-            <th className="w-[40%] px-3 py-2 font-medium text-zinc-700">
+            <th className="w-[40%] px-3 py-2 font-medium text-zinc-700 cursor-help" title="The canonical name chosen to represent this group">
               Representative
             </th>
-            <th className="w-[15%] px-3 py-2 font-medium text-zinc-700">
+            <th className="w-[15%] px-3 py-2 font-medium text-zinc-700 cursor-help" title="Combined length of all OSM segments in this group">
               Total length (km)
             </th>
-            <th className="w-[10%] px-3 py-2 font-medium text-zinc-700">
+            <th className="w-[10%] px-3 py-2 font-medium text-zinc-700 cursor-help" title="Number of distinct physical street occurrences">
               Streets
             </th>
-            <th className="w-[10%] px-3 py-2 font-medium text-zinc-700">
+            <th className="w-[10%] px-3 py-2 font-medium text-zinc-700 cursor-help" title="Individual geometric line features from OpenStreetMap">
               Segments
             </th>
-            <th className="w-[25%] px-3 py-2 font-medium text-zinc-700">
+            <th className="w-[25%] px-3 py-2 font-medium text-zinc-700 cursor-help" title="Different name spellings grouped under this representative">
               Variants
             </th>
           </tr>

@@ -258,6 +258,7 @@ export function StreetMapPageClient({
           <label
             htmlFor="normalization-method"
             className="mb-1.5 block text-xs font-medium text-zinc-500"
+            title="Algorithm used to decide which street name spellings belong to the same real-world street"
           >
             Normalization method
           </label>
@@ -284,45 +285,45 @@ export function StreetMapPageClient({
               Summary
             </h3>
             <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
-              <dt className="text-zinc-500">Groups</dt>
+              <dt className="text-zinc-500 cursor-help" title="Clusters of name variants that the normalization method considers the same street">Groups</dt>
               <dd className="font-medium text-zinc-900">
                 {computedStats.totalGroups.toLocaleString()}
               </dd>
-              <dt className="text-zinc-500">Streets</dt>
+              <dt className="text-zinc-500 cursor-help" title="Unique name strings in the dataset — the same name in different cities counts separately">Streets</dt>
               <dd className="font-medium text-zinc-900">
                 {computedStats.totalStreets.toLocaleString()}
               </dd>
-              <dt className="text-zinc-500">Segments</dt>
+              <dt className="text-zinc-500 cursor-help" title="Individual geometric line features from OpenStreetMap — a single street is split into many segments between intersections">Segments</dt>
               <dd className="font-medium text-zinc-900">
                 {computedStats.totalSegments.toLocaleString()}
               </dd>
-              <dt className="text-zinc-500">Total length</dt>
+              <dt className="text-zinc-500 cursor-help" title="Combined length of all segments across all groups">Total length</dt>
               <dd className="font-medium text-zinc-900">
                 {computedStats.totalLengthKm.toFixed(1)} km
               </dd>
-              <dt className="text-zinc-500">Avg streets/group</dt>
+              <dt className="text-zinc-500 cursor-help" title="Average number of unique name strings merged into each group">Avg streets/group</dt>
               <dd className="font-medium text-zinc-900">
                 {computedStats.avgStreetsPerGroup}
               </dd>
-              <dt className="text-zinc-500">Avg length/segment</dt>
+              <dt className="text-zinc-500 cursor-help" title="Average geometric length of a single OSM segment">Avg length/segment</dt>
               <dd className="font-medium text-zinc-900">
                 {computedStats.avgLengthPerSegmentM} m
               </dd>
               {methodEval && (
                 <>
-                  <dt className="text-zinc-500">Grouping rate</dt>
+                  <dt className="text-zinc-500 cursor-help" title="Percentage of known Wikidata entities whose name variants were correctly placed into a single group">Grouping rate</dt>
                   <dd className="font-medium text-zinc-900">
                     {(methodEval.grouping_rate * 100).toFixed(1)}%
                   </dd>
-                  <dt className="text-zinc-500">Collision rate</dt>
+                  <dt className="text-zinc-500 cursor-help" title="Percentage of groups that incorrectly merged distinct entities (e.g. two different people with similar names)">Collision rate</dt>
                   <dd className="font-medium text-zinc-900">
                     {(methodEval.collision_rate * 100).toFixed(1)}%
                   </dd>
-                  <dt className="text-zinc-500">Colliding groups</dt>
+                  <dt className="text-zinc-500 cursor-help" title="Number of groups that contain names belonging to more than one real-world entity">Colliding groups</dt>
                   <dd className="font-medium text-zinc-900">
                     {methodEval.colliding_groups}
                   </dd>
-                  <dt className="text-zinc-500">Problem entities</dt>
+                  <dt className="text-zinc-500 cursor-help" title="Wikidata entities (real-world people, places, or concepts) whose street name variants were fragmented across multiple groups">Problem entities</dt>
                   <dd className="font-medium text-zinc-900">
                     {methodEval.problem_entities.length}
                   </dd>
@@ -352,6 +353,12 @@ export function StreetMapPageClient({
         <div className="flex-1 overflow-y-auto p-4">
           {activeTab === "streets" && (
             <>
+              <p className="mb-3 text-xs text-zinc-500">
+                Each item is a normalized group — a set of name variants
+                (e.g. &quot;Štúrova&quot;, &quot;Ľ. Štúra&quot;) that
+                the method considers the same street. Click a group to
+                highlight its segments on the map.
+              </p>
               <div className="mb-3">
                 <label htmlFor="street-search" className="sr-only">
                   Search streets
@@ -440,8 +447,10 @@ export function StreetMapPageClient({
                 Collisions ({methodEval?.collisions.length ?? 0})
               </h2>
               <p className="text-xs text-zinc-500">
-                Groups where distinct entities (e.g. different people) were
-                merged. Click &quot;Show on map&quot; to highlight that group.
+                A collision occurs when the normalization method incorrectly
+                groups names of different real-world entities (e.g. two
+                different people) into one group. Click &quot;Show on
+                map&quot; to highlight that group.
               </p>
               {!methodEval ? (
                 <p className="text-xs text-zinc-500">
@@ -496,8 +505,11 @@ export function StreetMapPageClient({
                 {methodEval?.problem_entities.length ?? 0})
               </h2>
               <p className="text-xs text-zinc-500">
-                Entities whose variants were split across too many groups
-                (low score = worse).
+                An entity is a real-world person, place, or concept (from
+                Wikidata) that a street is named after. Problem entities are
+                those whose name variants were fragmented across multiple
+                groups instead of being unified. A lower score means worse
+                fragmentation.
               </p>
               {!methodEval ? (
                 <p className="text-xs text-zinc-500">
