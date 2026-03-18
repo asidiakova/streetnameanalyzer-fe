@@ -26,7 +26,10 @@ const DEFAULT_STREET_WIDTH = 2;
 
 const EMPTY_NAME_FILTER: maplibregl.FilterSpecification = ["in", "name", ""];
 const FOCUS_PADDING = 80;
-const CLUSTER_MARGIN_DEG = 0.01;
+
+// ~100 m at Slovakia's latitude; used to cluster nearby segments into
+// navigable "locations" (one street may span multiple locations).
+const CLUSTER_MARGIN_DEG = 0.0009;
 
 type ClustersIndex = Map<string, maplibregl.LngLatBounds[]>;
 

@@ -15,7 +15,6 @@ import type { Evaluation } from "@/types/evaluation";
 import {
   getTopGroupsByLength,
   getStreetCountDistribution,
-  getVariantCountDistribution,
   LENGTH_M_TO_KM,
 } from "@/lib/stats";
 import { formatMethodLabel } from "@/lib/format";
@@ -32,12 +31,11 @@ function hexToRgba(hex: string, opacity: number): string {
   return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 }
 
-type ChartTab = "length" | "streets" | "variants";
+type ChartTab = "length" | "streets";
 
 const CHART_TABS: { id: ChartTab; label: string }[] = [
   { id: "length", label: "Top groups by length" },
   { id: "streets", label: "Street count distribution" },
-  { id: "variants", label: "Variants per group distribution" },
 ];
 
 type TooltipPayload = ReadonlyArray<{ payload?: unknown }> | undefined;
@@ -55,9 +53,6 @@ export function StatisticsPageClient({
   const [chartTab, setChartTab] = useState<ChartTab>("length");
   const [selectedLengthGroupId, setSelectedLengthGroupId] = useState<
     string | null
-  >(null);
-  const [selectedVariantCount, setSelectedVariantCount] = useState<
-    number | null
   >(null);
   const [selectedStreetCount, setSelectedStreetCount] = useState<
     number | null
@@ -94,11 +89,6 @@ export function StatisticsPageClient({
     [method]
   );
 
-  const variantDist = useMemo(
-    () => getVariantCountDistribution(method),
-    [method]
-  );
-
   const streetDistWithFill = useMemo(() => {
     const n = streetDist.length;
     return streetDist.map((d, i) => ({
@@ -110,27 +100,6 @@ export function StatisticsPageClient({
     }));
   }, [streetDist]);
 
-  const variantDistWithFill = useMemo(() => {
-    const n = variantDist.length;
-    return variantDist.map((d, i) => ({
-      ...d,
-      fill: hexToRgba(
-        BAR_COLORS[2],
-        0.85 + (0.15 * (n - i)) / Math.max(n, 1)
-      ),
-    }));
-  }, [variantDist]);
-
-  const groupsWithSelectedVariantCount = useMemo(() => {
-    if (selectedVariantCount == null || !method) return [];
-    return (
-      Object.entries(method.groups) as [
-        string,
-        (typeof method.groups)[string],
-      ][]
-    ).filter(([, g]) => g.variants.length === selectedVariantCount);
-  }, [method, selectedVariantCount]);
-
   const groupsWithSelectedStreetCount = useMemo(() => {
     if (selectedStreetCount == null || !method) return [];
     return (
@@ -138,13 +107,12 @@ export function StatisticsPageClient({
         string,
         (typeof method.groups)[string],
       ][]
-    ).filter(([, g]) => g.segment_count === selectedStreetCount);
+    ).filter(([, g]) => g.street_count === selectedStreetCount);
   }, [method, selectedStreetCount]);
 
   const handleMethodChange = (key: string) => {
     setActiveMethod(key);
     setSelectedLengthGroupId(null);
-    setSelectedVariantCount(null);
     setSelectedStreetCount(null);
   };
 
@@ -341,7 +309,7 @@ export function StatisticsPageClient({
                 method?.groups[selectedLengthGroupId] && (
                   <div className="mt-4 border-t border-zinc-200 pt-4">
                     <h3 className="mb-2 text-sm font-semibold text-zinc-800">
-                      Streets / variants in this group
+                      Variants in this group
                     </h3>
                     <div className="overflow-x-auto rounded border border-zinc-200">
                       <table className="w-full min-w-md text-left text-sm">
@@ -471,109 +439,6 @@ export function StatisticsPageClient({
                     </h3>
                     <GroupTable
                       groups={groupsWithSelectedStreetCount}
-                    />
-                  </div>
-                )}
-            </>
-          )}
-
-          {chartTab === "variants" && (
-            <>
-              <div className="h-96 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={variantDistWithFill}
-                    margin={{
-                      left: 24,
-                      right: 24,
-                      top: 24,
-                      bottom: 48,
-                    }}
-                    barCategoryGap="20%"
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="#e4e4e7"
-                      vertical={false}
-                    />
-                    <XAxis
-                      dataKey="variantCount"
-                      type="number"
-                      tick={{ fontSize: 12, fill: "#52525b" }}
-                      allowDecimals={false}
-                      label={{
-                        value: "Variant count",
-                        position: "insideBottom",
-                        offset: -24,
-                        style: { fill: "#71717a", fontSize: 12 },
-                      }}
-                    />
-                    <YAxis
-                      scale="log"
-                      domain={[0.5, "auto"]}
-                      tick={{ fontSize: 12, fill: "#52525b" }}
-                      label={{
-                        value: "Number of groups",
-                        angle: -90,
-                        position: "insideLeft",
-                        style: { fill: "#71717a", fontSize: 12 },
-                      }}
-                    />
-                    <Tooltip
-                      content={({
-                        payload,
-                      }: {
-                        payload: TooltipPayload;
-                      }) => {
-                        const p = payload?.[0]?.payload as
-                          | {
-                              variantCount: number;
-                              groupCount: number;
-                            }
-                          | undefined;
-                        if (!p) return null;
-                        return (
-                          <div className="rounded border border-zinc-200 bg-white px-3 py-2 text-sm shadow-lg">
-                            <span className="text-zinc-600">
-                              {p.variantCount} variant
-                              {p.variantCount !== 1 ? "s" : ""}:{" "}
-                            </span>
-                            <span className="font-medium">
-                              {p.groupCount} group
-                              {p.groupCount !== 1 ? "s" : ""}
-                            </span>
-                          </div>
-                        );
-                      }}
-                    />
-                    <Bar
-                      dataKey="groupCount"
-                      fill={BAR_COLORS[2]}
-                      radius={[4, 4, 0, 0]}
-                      cursor="pointer"
-                      onClick={(data) =>
-                        setSelectedVariantCount(
-                          (
-                            data?.payload as
-                              | { variantCount?: number }
-                              | undefined
-                          )?.variantCount ?? null
-                        )
-                      }
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              {selectedVariantCount != null &&
-                groupsWithSelectedVariantCount.length > 0 && (
-                  <div className="mt-4 border-t border-zinc-200 pt-4">
-                    <h3 className="mb-2 text-sm font-semibold text-zinc-800">
-                      Groups with {selectedVariantCount} variant
-                      {selectedVariantCount !== 1 ? "s" : ""} (
-                      {groupsWithSelectedVariantCount.length})
-                    </h3>
-                    <GroupTable
-                      groups={groupsWithSelectedVariantCount}
                     />
                   </div>
                 )}

@@ -288,25 +288,25 @@ export function StreetMapPageClient({
               <dd className="font-medium text-zinc-900">
                 {computedStats.totalGroups.toLocaleString()}
               </dd>
-              <dt className="text-zinc-500">Names</dt>
+              <dt className="text-zinc-500">Streets</dt>
               <dd className="font-medium text-zinc-900">
-                {computedStats.totalNames.toLocaleString()}
+                {computedStats.totalStreets.toLocaleString()}
+              </dd>
+              <dt className="text-zinc-500">Segments</dt>
+              <dd className="font-medium text-zinc-900">
+                {computedStats.totalSegments.toLocaleString()}
               </dd>
               <dt className="text-zinc-500">Total length</dt>
               <dd className="font-medium text-zinc-900">
                 {computedStats.totalLengthKm.toFixed(1)} km
               </dd>
-              <dt className="text-zinc-500">Streets</dt>
+              <dt className="text-zinc-500">Avg streets/group</dt>
               <dd className="font-medium text-zinc-900">
-                {computedStats.totalStreets.toLocaleString()}
+                {computedStats.avgStreetsPerGroup}
               </dd>
-              <dt className="text-zinc-500">Avg group size</dt>
+              <dt className="text-zinc-500">Avg length/segment</dt>
               <dd className="font-medium text-zinc-900">
-                {computedStats.avgGroupSize}
-              </dd>
-              <dt className="text-zinc-500">Avg length/street</dt>
-              <dd className="font-medium text-zinc-900">
-                {computedStats.avgLengthPerStreetM} m
+                {computedStats.avgLengthPerSegmentM} m
               </dd>
               {methodEval && (
                 <>
@@ -408,15 +408,11 @@ export function StreetMapPageClient({
                       </div>
                       <div className="mt-0.5 text-zinc-500">
                         {(group.total_length / LENGTH_M_TO_KM).toFixed(1)} km ·{" "}
-                        {group.segment_count} street
+                        {group.street_count} street
+                        {group.street_count !== 1 ? "s" : ""} ·{" "}
+                        {group.segment_count} segment
                         {group.segment_count !== 1 ? "s" : ""}
                       </div>
-                      {!isSelected && group.variants.length > 1 && (
-                        <div className="mt-1 text-xs text-zinc-400">
-                          {group.variants.length} variant
-                          {group.variants.length !== 1 ? "s" : ""}
-                        </div>
-                      )}
                       {isSelected && group.variants.length > 0 && (
                         <div className="mt-2 border-t border-zinc-200 pt-2">
                           <div className="mb-1.5 text-xs font-medium text-zinc-500">

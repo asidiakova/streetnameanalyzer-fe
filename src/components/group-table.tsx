@@ -21,16 +21,19 @@ export function GroupTable({
       <table className="w-full table-fixed text-left text-sm">
         <thead className="bg-zinc-50">
           <tr className="border-b border-zinc-200">
-            <th className="w-[55%] px-3 py-2 font-medium text-zinc-700">
+            <th className="w-[40%] px-3 py-2 font-medium text-zinc-700">
               Representative
             </th>
             <th className="w-[15%] px-3 py-2 font-medium text-zinc-700">
               Total length (km)
             </th>
-            <th className="w-[15%] px-3 py-2 font-medium text-zinc-700">
-              Street count
+            <th className="w-[10%] px-3 py-2 font-medium text-zinc-700">
+              Streets
             </th>
-            <th className="w-[15%] px-3 py-2 font-medium text-zinc-700">
+            <th className="w-[10%] px-3 py-2 font-medium text-zinc-700">
+              Segments
+            </th>
+            <th className="w-[25%] px-3 py-2 font-medium text-zinc-700">
               Variants
             </th>
           </tr>
@@ -46,6 +49,9 @@ export function GroupTable({
                   </td>
                   <td className="px-3 py-2 text-zinc-700">
                     {(g.total_length / LENGTH_M_TO_KM).toFixed(3)}
+                  </td>
+                  <td className="px-3 py-2 text-zinc-700">
+                    {g.street_count.toLocaleString()}
                   </td>
                   <td className="px-3 py-2 text-zinc-700">
                     {g.segment_count.toLocaleString()}
@@ -72,7 +78,7 @@ export function GroupTable({
                 </tr>
                 {isExpanded && (
                   <tr className="border-b border-zinc-100 bg-zinc-50/50">
-                    <td colSpan={4} className="px-3 py-2">
+                    <td colSpan={5} className="px-3 py-2">
                       <div className="max-h-60 overflow-y-auto space-y-0.5 text-xs text-zinc-700">
                         {g.variants.map((v, i) => (
                           <div key={`${groupId}-variant-${i}`}>{v}</div>
