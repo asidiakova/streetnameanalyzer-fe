@@ -5,7 +5,7 @@ import { StreetMapPageClient } from "./map/street-map-page-client";
 import { StatisticsPageClient } from "./statistics/statistics-page-client";
 import { DictionaryPageClient } from "./dictionary/dictionary-page-client";
 import { AboutPageClient } from "./about/about-page-client";
-import type { Mappings } from "@/types/mappings";
+import type { Mappings, DataMetadata } from "@/types/mappings";
 import type { Evaluation } from "@/types/evaluation";
 
 type View = "map" | "statistics" | "dictionary" | "about";
@@ -20,9 +20,11 @@ const NAV_ITEMS: { id: View; label: string }[] = [
 export function HomeClient({
   mappings,
   evaluation,
+  metadata,
 }: {
   mappings: Mappings;
   evaluation: Evaluation;
+  metadata: DataMetadata;
 }) {
   const [view, setView] = useState<View>("map");
 
@@ -52,13 +54,13 @@ export function HomeClient({
 
       {view === "map" && (
         <div className="min-h-0 flex-1">
-          <StreetMapPageClient mappings={mappings} evaluation={evaluation} />
+          <StreetMapPageClient mappings={mappings} evaluation={evaluation} metadata={metadata} />
         </div>
       )}
 
       {view === "statistics" && (
         <div className="min-h-0 flex-1 overflow-hidden">
-          <StatisticsPageClient mappings={mappings} evaluation={evaluation} />
+          <StatisticsPageClient mappings={mappings} evaluation={evaluation} metadata={metadata} />
         </div>
       )}
 
@@ -70,7 +72,7 @@ export function HomeClient({
 
       {view === "about" && (
         <div className="min-h-0 flex-1 overflow-hidden">
-          <AboutPageClient />
+          <AboutPageClient metadata={metadata} />
         </div>
       )}
     </div>

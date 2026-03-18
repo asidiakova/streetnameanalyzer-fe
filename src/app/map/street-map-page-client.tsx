@@ -126,9 +126,11 @@ function selectedGroupToCsvRows(
 export function StreetMapPageClient({
   mappings,
   evaluation,
+  metadata,
 }: {
   mappings: Mappings;
   evaluation: Evaluation;
+  metadata: import("@/types/mappings").DataMetadata;
 }) {
   const [activeMethod, setActiveMethod] = useState<string>("");
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
@@ -281,9 +283,14 @@ export function StreetMapPageClient({
 
         {computedStats && (
           <div className="shrink-0 border-b border-zinc-200 p-4">
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              Summary
-            </h3>
+            <div className="mb-2 flex items-baseline justify-between">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                Summary
+              </h3>
+              <span className="text-[10px] text-zinc-400" title="Date of the OpenStreetMap data extract">
+                OSM data: {metadata.osm_data_date}
+              </span>
+            </div>
             <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
               <dt className="text-zinc-500 cursor-help" title="Clusters of name variants that the normalization method considers the same street">Groups</dt>
               <dd className="font-medium text-zinc-900">

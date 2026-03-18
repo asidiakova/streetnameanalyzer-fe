@@ -12,3 +12,10 @@ export type MethodData = {
 };
 
 export type Mappings = Record<string, MethodData>;
+
+export type DataMetadata = {
+  osm_data_date: string;
+  total_street_names: number;
+  etymology_tagged: number;
+  generated_at: string;
+};

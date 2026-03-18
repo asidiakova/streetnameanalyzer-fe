@@ -68,9 +68,11 @@ type TooltipPayload = ReadonlyArray<{ payload?: unknown }> | undefined;
 export function StatisticsPageClient({
   mappings,
   evaluation,
+  metadata,
 }: {
   mappings: Mappings;
   evaluation: Evaluation;
+  metadata: import("@/types/mappings").DataMetadata;
 }) {
   const [activeMethod, setActiveMethod] = useState(() =>
     Object.keys(mappings).length > 0 ? Object.keys(mappings)[0] : ""
@@ -247,9 +249,16 @@ export function StatisticsPageClient({
       </div>
 
       <section className="mb-8">
-        <h2 className="mb-4 text-lg font-semibold text-zinc-800">
-          Summary (all methods)
-        </h2>
+        <div className="mb-4 flex items-baseline justify-between">
+          <h2 className="text-lg font-semibold text-zinc-800">
+            Summary (all methods)
+          </h2>
+          <div className="flex gap-4 text-xs text-zinc-500">
+            <span title="Date of the OpenStreetMap data extract">
+              OSM data: {metadata.osm_data_date}
+            </span>
+          </div>
+        </div>
         <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white shadow-sm">
           <table className="w-full min-w-lg text-left text-sm">
             <thead>
@@ -287,8 +296,13 @@ export function StatisticsPageClient({
                       key === activeMethod ? "bg-blue-50/50" : ""
                     }`}
                   >
-                    <td className="px-4 py-3 font-medium text-zinc-900">
-                      {label}
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-zinc-900">{label}</div>
+                      {key.startsWith("llm_") && (
+                        <div className="text-[10px] text-zinc-400" title="Date when the LLM requests were sent">
+                          Generated: {new Date(metadata.generated_at).toLocaleDateString()}
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-zinc-700">
                       {evalData
