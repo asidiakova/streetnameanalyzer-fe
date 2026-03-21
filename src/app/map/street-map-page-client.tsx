@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
-import type { Mappings, NormalizedGroup } from "@/types/mappings";
+import type { Mappings, NormalizedGroup, DataMetadata } from "@/types/mappings";
 import type { Evaluation, ProblemEntity } from "@/types/evaluation";
 import { computeMethodStats, LENGTH_M_TO_KM } from "@/lib/stats";
 import { formatMethodLabel } from "@/lib/format";
@@ -130,7 +130,7 @@ export function StreetMapPageClient({
 }: {
   mappings: Mappings;
   evaluation: Evaluation;
-  metadata: import("@/types/mappings").DataMetadata;
+  metadata: DataMetadata;
 }) {
   const [activeMethod, setActiveMethod] = useState<string>("");
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
@@ -279,6 +279,15 @@ export function StreetMapPageClient({
               </option>
             ))}
           </select>
+          {effectiveMethod.startsWith("llm_") &&
+            metadata.cache_dates[effectiveMethod] && (
+              <p
+                className="mt-1.5 text-[10px] leading-snug text-zinc-500"
+                title="Date of the cached LLM responses for this method"
+              >
+                LLM cache: {metadata.cache_dates[effectiveMethod]}
+              </p>
+            )}
         </div>
 
         {computedStats && (

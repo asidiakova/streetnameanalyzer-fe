@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
-import type { Mappings } from "@/types/mappings";
+import type { Mappings, DataMetadata } from "@/types/mappings";
 import type { Evaluation } from "@/types/evaluation";
 import {
   getTopGroupsByLength,
@@ -72,7 +72,7 @@ export function StatisticsPageClient({
 }: {
   mappings: Mappings;
   evaluation: Evaluation;
-  metadata: import("@/types/mappings").DataMetadata;
+  metadata: DataMetadata;
 }) {
   const [activeMethod, setActiveMethod] = useState(() =>
     Object.keys(mappings).length > 0 ? Object.keys(mappings)[0] : ""
@@ -298,11 +298,15 @@ export function StatisticsPageClient({
                   >
                     <td className="px-4 py-3">
                       <div className="font-medium text-zinc-900">{label}</div>
-                      {key.startsWith("llm_") && (
-                        <div className="text-[10px] text-zinc-400" title="Date when the LLM requests were sent">
-                          Generated: {new Date(metadata.generated_at).toLocaleDateString()}
-                        </div>
-                      )}
+                      {key.startsWith("llm_") &&
+                        metadata.cache_dates[key] && (
+                          <div
+                            className="text-[10px] text-zinc-400"
+                            title="Date of the cached LLM responses for this method"
+                          >
+                            LLM cache: {metadata.cache_dates[key]}
+                          </div>
+                        )}
                     </td>
                     <td className="px-4 py-3 text-zinc-700">
                       {evalData

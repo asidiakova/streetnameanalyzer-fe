@@ -18,4 +18,6 @@ export type DataMetadata = {
   total_street_names: number;
   etymology_tagged: number;
   generated_at: string;
+  /** Per-method LLM cache date (ISO date string), keyed by method id */
+  cache_dates: Record<string, string>;
 };
