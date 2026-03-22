@@ -1,3 +1,5 @@
+import type { JsonFileRoot } from "@/types/mappings";
+
 export type CollisionEntity = {
   wikidata_id: string;
   label: string;
@@ -29,3 +31,5 @@ export type MethodEvaluation = {
 };
 
 export type Evaluation = Record<string, MethodEvaluation>;
+
+export type EvaluationJsonRoot = JsonFileRoot<MethodEvaluation>;

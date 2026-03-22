@@ -2,10 +2,11 @@
 
 import { useState, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
-import type { Mappings, NormalizedGroup, DataMetadata } from "@/types/mappings";
+import type { Mappings, NormalizedGroup, MapViewMetadata } from "@/types/mappings";
 import type { Evaluation, ProblemEntity } from "@/types/evaluation";
 import { computeMethodStats, LENGTH_M_TO_KM } from "@/lib/stats";
 import { formatMethodLabel } from "@/lib/format";
+import { downloadCsv, downloadJson } from "@/lib/download";
 
 const StreetMap = dynamic(
   () =>
@@ -14,11 +15,6 @@ const StreetMap = dynamic(
     })),
   {
     ssr: false,
-    loading: () => (
-      <div className="grid h-full w-full place-items-center bg-zinc-100">
-        Loading map…
-      </div>
-    ),
   }
 );
 
@@ -42,37 +38,6 @@ function filterGroupsBySearch(
   });
 }
 
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function downloadJson(filename: string, data: unknown) {
-  downloadBlob(
-    new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }),
-    filename
-  );
-}
-
-function escapeCsvField(value: string): string {
-  if (!/[\n",]/.test(value)) return value;
-  return `"${value.replace(/"/g, '""')}"`;
-}
-
-function downloadCsv(filename: string, rows: string[][]) {
-  const csv = rows
-    .map((row) => row.map((cell) => escapeCsvField(String(cell))).join(","))
-    .join("\n");
-  downloadBlob(
-    new Blob([csv], { type: "text/csv;charset=utf-8" }),
-    filename
-  );
-}
-
 function visibleGroupsToCsvRows(
   method: string,
   entries: [string, NormalizedGroup][]
@@ -83,8 +48,9 @@ function visibleGroupsToCsvRows(
     "representative",
     "total_length_km",
     "segment_count",
-    "variant_count",
-    "variants",
+    "street_count",
+    "name_variant_count",
+    "variants_semicolon_separated",
   ];
   const dataRows = entries.map(([id, g]) => [
     method,
@@ -92,6 +58,7 @@ function visibleGroupsToCsvRows(
     g.representative,
     (g.total_length / LENGTH_M_TO_KM).toFixed(3),
     String(g.segment_count),
+    String(g.street_count),
     String(g.variants.length),
     g.variants.join("; "),
   ]);
@@ -109,15 +76,20 @@ function selectedGroupToCsvRows(
     "representative",
     "total_length_km",
     "segment_count",
-    "variant",
+    "street_count",
+    "name_variant_count",
+    "name_variant",
   ];
   const km = (group.total_length / LENGTH_M_TO_KM).toFixed(3);
+  const nameVariantCount = String(group.variants.length);
   const dataRows = group.variants.map((variant) => [
     method,
     groupId,
     group.representative,
     km,
     String(group.segment_count),
+    String(group.street_count),
+    nameVariantCount,
     variant,
   ]);
   return [header, ...dataRows];
@@ -130,9 +102,11 @@ export function StreetMapPageClient({
 }: {
   mappings: Mappings;
   evaluation: Evaluation;
-  metadata: DataMetadata;
+  metadata: MapViewMetadata;
 }) {
-  const [activeMethod, setActiveMethod] = useState<string>("");
+  const [activeMethod, setActiveMethod] = useState(() =>
+    Object.keys(mappings).length > 0 ? Object.keys(mappings)[0] : ""
+  );
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [focusClusterIndex, setFocusClusterIndex] = useState(0);
   const [focusTrigger, setFocusTrigger] = useState(0);
@@ -248,7 +222,9 @@ export function StreetMapPageClient({
     if (problemSort === "score") list.sort((a, b) => a.score - b.score);
     else
       list.sort((a, b) =>
-        a.entity_label.localeCompare(b.entity_label, "sk")
+        a.entity_label.localeCompare(b.entity_label, "sk", {
+          sensitivity: "base",
+        })
       );
     return list;
   }, [methodEval, problemSort]);

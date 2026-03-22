@@ -253,9 +253,17 @@ export function StatisticsPageClient({
           <h2 className="text-lg font-semibold text-zinc-800">
             Summary (all methods)
           </h2>
-          <div className="flex gap-4 text-xs text-zinc-500">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
             <span title="Date of the OpenStreetMap data extract">
               OSM data: {metadata.osm_data_date}
+            </span>
+            <span title="When mappings.json was generated">
+              Mappings:{" "}
+              {new Date(metadata.mappings_generated_at).toLocaleString()}
+            </span>
+            <span title="When evaluation.json was generated">
+              Evaluation:{" "}
+              {new Date(metadata.evaluation_generated_at).toLocaleString()}
             </span>
           </div>
         </div>

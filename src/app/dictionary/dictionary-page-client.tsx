@@ -4,6 +4,7 @@ import { useMemo, useState, useRef, useCallback } from "react";
 import type { Mappings, NormalizedGroup } from "@/types/mappings";
 import { formatMethodLabel } from "@/lib/format";
 import { LENGTH_M_TO_KM } from "@/lib/stats";
+import { downloadCsv } from "@/lib/download";
 
 const ALPHABET = "AÁÄBCČDĎEÉFGHIÍJKLĹĽMNŇOÓÔPQRŔSŠTŤUÚVWXYÝZŽ".split("");
 const PAGE_SIZE = 100;
@@ -97,21 +98,11 @@ export function DictionaryPageClient({
 
   const handleExportCsv = useCallback(() => {
     if (!method) return;
-    const escape = (v: string) =>
-      v.includes(",") || v.includes('"') || v.includes("\n")
-        ? `"${v.replace(/"/g, '""')}"`
-        : v;
-    const rows = ["street_name,normalized_to"];
-    for (const entry of allEntries) {
-      rows.push(`${escape(entry.name)},${escape(entry.group.representative)}`);
-    }
-    const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `dictionary_${activeMethod}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const rows: string[][] = [
+      ["street_name", "normalized_to"],
+      ...allEntries.map((e) => [e.name, e.group.representative]),
+    ];
+    downloadCsv(`dictionary_${activeMethod}.csv`, rows);
   }, [method, allEntries, activeMethod]);
 
   return (
@@ -140,7 +131,7 @@ export function DictionaryPageClient({
             </select>
           </div>
 
-          <div className="flex-1 min-w-[200px] max-w-md">
+          <div className="flex-1 min-w-50 max-w-md">
             <label htmlFor="dict-search" className="sr-only">
               Search street names
             </label>
