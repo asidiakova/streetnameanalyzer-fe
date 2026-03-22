@@ -272,9 +272,15 @@ export function StreetMapPageClient({
               <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 Summary
               </h3>
-              <span className="text-[10px] text-zinc-400" title="Date of the OpenStreetMap data extract">
-                OSM data: {metadata.osm_data_date}
-              </span>
+              <div className="flex flex-col items-end gap-0.5 text-[10px] text-zinc-400">
+                <span title="Date of the OpenStreetMap data extract">
+                  OSM data: {metadata.osm_data_date}
+                </span>
+                <span title="When mappings.json was generated">
+                  Mappings:{" "}
+                  {metadata.generated_at.slice(0, 19).replace("T", " ")}
+                </span>
+              </div>
             </div>
             <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
               <dt className="text-zinc-500 cursor-help" title="Clusters of name variants that the normalization method considers the same street">Groups</dt>

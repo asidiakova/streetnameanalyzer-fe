@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
-import type { Mappings, DataMetadata } from "@/types/mappings";
+import type { JsonFileMetadata, Mappings } from "@/types/mappings";
 import type { Evaluation } from "@/types/evaluation";
 import {
   getTopGroupsByLength,
@@ -72,7 +72,7 @@ export function StatisticsPageClient({
 }: {
   mappings: Mappings;
   evaluation: Evaluation;
-  metadata: DataMetadata;
+  metadata: JsonFileMetadata;
 }) {
   const [activeMethod, setActiveMethod] = useState(() =>
     Object.keys(mappings).length > 0 ? Object.keys(mappings)[0] : ""
@@ -257,13 +257,9 @@ export function StatisticsPageClient({
             <span title="Date of the OpenStreetMap data extract">
               OSM data: {metadata.osm_data_date}
             </span>
-            <span title="When mappings.json was generated">
-              Mappings:{" "}
-              {new Date(metadata.mappings_generated_at).toLocaleString()}
-            </span>
             <span title="When evaluation.json was generated">
               Evaluation:{" "}
-              {new Date(metadata.evaluation_generated_at).toLocaleString()}
+              {metadata.generated_at.slice(0, 19).replace("T", " ")}
             </span>
           </div>
         </div>

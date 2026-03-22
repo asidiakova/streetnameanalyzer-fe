@@ -1,7 +1,7 @@
 import mappingsImport from "@/mappings.json";
 import evaluationImport from "@/evaluation.json";
 import type {
-  DataMetadata,
+  JsonFileMetadata,
   MapViewMetadata,
   Mappings,
   MappingsJsonRoot,
@@ -21,23 +21,17 @@ export default function Home() {
   const mapMetadata: MapViewMetadata = {
     osm_data_date: mappingsMeta.osm_data_date,
     cache_dates: mappingsMeta.cache_dates,
+    generated_at: mappingsMeta.generated_at,
   };
 
-  const { generated_at: evaluation_generated_at, ...evaluationMetaRest } =
-    evaluationMeta;
-  const { generated_at: mappings_generated_at } = mappingsMeta;
-  const statisticsMetadata: DataMetadata = {
-    ...evaluationMetaRest,
-    mappings_generated_at,
-    evaluation_generated_at,
-  };
+  const evaluationMetadata: JsonFileMetadata = evaluationMeta;
 
   return (
     <HomeClient
       mappings={mappings}
       evaluation={evaluation}
       mapMetadata={mapMetadata}
-      statisticsMetadata={statisticsMetadata}
+      evaluationMetadata={evaluationMetadata}
     />
   );
 }

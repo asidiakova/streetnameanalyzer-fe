@@ -28,9 +28,7 @@ export interface JsonFileRoot<V> {
 
 export type MappingsJsonRoot = JsonFileRoot<MethodData>;
 
-export type DataMetadata = Omit<JsonFileMetadata, "generated_at"> & {
-  mappings_generated_at: string;
-  evaluation_generated_at: string;
-};
-
-export type MapViewMetadata = Pick<JsonFileMetadata, "osm_data_date" | "cache_dates">;
+export type MapViewMetadata = Pick<
+  JsonFileMetadata,
+  "osm_data_date" | "cache_dates" | "generated_at"
+>;

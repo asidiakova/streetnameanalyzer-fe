@@ -5,7 +5,11 @@ import { StreetMapPageClient } from "./map/street-map-page-client";
 import { StatisticsPageClient } from "./statistics/statistics-page-client";
 import { DictionaryPageClient } from "./dictionary/dictionary-page-client";
 import { AboutPageClient } from "./about/about-page-client";
-import type { Mappings, DataMetadata, MapViewMetadata } from "@/types/mappings";
+import type {
+  JsonFileMetadata,
+  Mappings,
+  MapViewMetadata,
+} from "@/types/mappings";
 import type { Evaluation } from "@/types/evaluation";
 
 type View = "map" | "statistics" | "dictionary" | "about";
@@ -21,12 +25,12 @@ export function HomeClient({
   mappings,
   evaluation,
   mapMetadata,
-  statisticsMetadata,
+  evaluationMetadata,
 }: {
   mappings: Mappings;
   evaluation: Evaluation;
   mapMetadata: MapViewMetadata;
-  statisticsMetadata: DataMetadata;
+  evaluationMetadata: JsonFileMetadata;
 }) {
   const [view, setView] = useState<View>("map");
 
@@ -69,7 +73,7 @@ export function HomeClient({
           <StatisticsPageClient
             mappings={mappings}
             evaluation={evaluation}
-            metadata={statisticsMetadata}
+            metadata={evaluationMetadata}
           />
         </div>
       )}
