@@ -288,6 +288,9 @@ export function StatisticsPageClient({
                 <th className="px-4 py-3 font-medium text-zinc-700 cursor-help" title="Number of groups that contain names belonging to more than one real-world entity">
                   Colliding groups
                 </th>
+                <th className="px-4 py-3 font-medium text-zinc-700 cursor-help" title="Entities whose name variants were not fully unified into a single group (score below 1)">
+                  Problem entities
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -340,6 +343,13 @@ export function StatisticsPageClient({
                     <td className="px-4 py-3 text-zinc-700">
                       {evalData
                         ? evalData.colliding_groups.toLocaleString()
+                        : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-zinc-700">
+                      {evalData
+                        ? (
+                            evalData.problem_entities?.length ?? 0
+                          ).toLocaleString()
                         : "—"}
                     </td>
                   </tr>
