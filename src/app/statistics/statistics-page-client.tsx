@@ -488,10 +488,8 @@ export function StatisticsPageClient({
           {chartTab === "streets" && (
             <>
               <p className="mb-3 text-xs text-zinc-500">
-                How many unique street names (name strings) each
-                normalized group contains. A group with 1 street had no
-                additional spellings merged; larger counts mean more
-                variants were unified. Click a bar to see the groups
+                How many unique streets each
+                normalized group contains. Click a bar to see the groups
                 with that street count.
               </p>
               <div className="h-96 w-full">
@@ -794,9 +792,6 @@ export function StatisticsPageClient({
                             <th className="w-[15%] px-3 py-2 font-medium text-zinc-700">
                               Variants
                             </th>
-                            <th className="w-[15%] px-3 py-2 font-medium text-zinc-700">
-                              Dominant
-                            </th>
                             <th className="w-[20%] px-3 py-2 font-medium text-zinc-700">
                               Unique groups
                             </th>
@@ -816,9 +811,6 @@ export function StatisticsPageClient({
                               </td>
                               <td className="px-3 py-2 text-zinc-700">
                                 {p.total_variants}
-                              </td>
-                              <td className="px-3 py-2 text-zinc-700">
-                                {p.dominant_count}
                               </td>
                               <td className="px-3 py-2 text-zinc-700">
                                 {p.unique_groups}
