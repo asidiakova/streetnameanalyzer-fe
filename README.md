@@ -6,7 +6,7 @@ Next.js UI for street-name normalization: map, statistics, dictionary, about.
 
 ## Run locally
 
-Copy `.env.example` to `.env.local` and adjust. Variables are documented inline in `.env.example`.
+Copy `.env.example` to `.env` and adjust (only if you want to change the map style). Variables are documented inline in `.env.example`.
 
 
 ```bash
