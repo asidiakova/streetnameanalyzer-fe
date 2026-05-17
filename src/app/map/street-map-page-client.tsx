@@ -274,7 +274,7 @@ export function StreetMapPageClient({
               </h3>
               <div className="flex flex-col items-end gap-0.5 text-[10px] text-zinc-400">
                 <span title="Date of the OpenStreetMap data extract">
-                  OSM data: {metadata.osm_data_date}
+                  OSM data: {metadata.osm_data_date ?? "N/A"}
                 </span>
                 <span title="When mappings.json was generated">
                   Mappings:{" "}
