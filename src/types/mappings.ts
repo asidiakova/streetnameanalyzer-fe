@@ -14,9 +14,9 @@ export type MethodData = {
 export type Mappings = Record<string, MethodData>;
 
 export type JsonFileMetadata = {
-  osm_data_date: string;
-  total_street_names: number;
-  etymology_tagged: number;
+  osm_data_date: string | null;
+  total_street_names: number | null;
+  etymology_tagged: number | null;
   generated_at: string;
   cache_dates: Record<string, string>;
 };

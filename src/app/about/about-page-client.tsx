@@ -63,7 +63,7 @@ const GLOSSARY: { term: string; definition: string }[] = [
   },
 ];
 
-export function AboutPageClient({ osmDataDate }: { osmDataDate: string }) {
+export function AboutPageClient({ osmDataDate }: { osmDataDate: string | null }) {
   return (
     <div className="h-full overflow-y-auto bg-zinc-50 px-6 py-8">
       <div className="mx-auto max-w-3xl space-y-10">
@@ -87,7 +87,7 @@ export function AboutPageClient({ osmDataDate }: { osmDataDate: string }) {
           <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
             <dt className="text-zinc-500">OSM data date</dt>
             <dd className="font-medium text-zinc-900">
-              {osmDataDate}
+              {osmDataDate ?? "N/A"}
             </dd>
           </dl>
         </section>

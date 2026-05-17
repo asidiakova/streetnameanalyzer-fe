@@ -255,7 +255,7 @@ export function StatisticsPageClient({
           </h2>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
             <span title="Date of the OpenStreetMap data extract">
-              OSM data: {metadata.osm_data_date}
+              OSM data: {metadata.osm_data_date ?? "N/A"}
             </span>
             <span title="When evaluation.json was generated">
               Evaluation:{" "}
